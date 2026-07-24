@@ -12,7 +12,37 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 BINARY="eping"
 DIST="dist"
-VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}"
+
+# Version resolution order (see docs/BUILD.md#versioning):
+#   1. Explicit VERSION env var.
+#   2. The exact git tag pointing at HEAD (e.g. v0.1).
+#   3. The ./VERSION file (next planned release) plus a dev/commit suffix.
+#   4. "dev" if none of the above are available (e.g. no git, no VERSION file).
+resolve_version() {
+  if [ -n "${VERSION:-}" ]; then
+    echo "$VERSION"
+    return
+  fi
+  if tag=$(git describe --tags --exact-match 2>/dev/null); then
+    echo "$tag"
+    return
+  fi
+  base="dev"
+  if [ -f VERSION ]; then
+    base="v$(tr -d '[:space:]' < VERSION)-dev"
+  fi
+  if sha=$(git rev-parse --short HEAD 2>/dev/null); then
+    dirty=""
+    if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+      dirty="-dirty"
+    fi
+    echo "${base}+${sha}${dirty}"
+  else
+    echo "$base"
+  fi
+}
+
+VERSION="$(resolve_version)"
 LDFLAGS="-s -w -X main.version=${VERSION}"
 
 PLATFORMS=(

@@ -9,7 +9,21 @@
 
 BINARY  := eping
 DIST    := dist
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+
+# Version resolution order (see docs/BUILD.md#versioning):
+#   1. Explicit `make VERSION=v0.2 ...` / VERSION env var.
+#   2. The exact git tag pointing at HEAD (e.g. v0.1).
+#   3. The ./VERSION file (next planned release) plus a dev/commit suffix.
+#   4. "dev" if none of the above are available.
+VERSION ?= $(shell \
+	tag=$$(git describe --tags --exact-match 2>/dev/null); \
+	if [ -n "$$tag" ]; then echo "$$tag"; \
+	elif [ -f VERSION ]; then \
+		base="v$$(tr -d '[:space:]' < VERSION)-dev"; \
+		sha=$$(git rev-parse --short HEAD 2>/dev/null); \
+		if [ -n "$$sha" ]; then echo "$${base}+$${sha}"; else echo "$$base"; fi; \
+	else echo dev; fi \
+)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
 PLATFORMS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64

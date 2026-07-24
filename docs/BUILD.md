@@ -21,7 +21,7 @@ environment — none of them require installing anything beyond a Go toolchain
 (Go's cross-compilation is native, no C toolchain or Docker required, since
 the project has no cgo dependencies).
 
-**Option 1 — `make` (Linux/macOS/WSL, or Windows with `make` installed):**
+**Option 1 — `make` (Linux/macOS/WSL, or Git Bash on Windows):**
 
 ```bash
 cd ui
@@ -31,6 +31,13 @@ make build-all
 
 Other targets: `make build` (current platform), `make test`, `make vet`,
 `make clean`.
+
+> On Windows, run this from **Git Bash** or **WSL**, not from PowerShell or
+> `cmd.exe`. GNU Make for native Windows falls back to `cmd.exe` as its shell
+> when it can't find `sh.exe` on `PATH`, which breaks the POSIX shell syntax
+> used in the `Makefile`; Git Bash/WSL put a real `sh.exe` on `PATH` so this
+> isn't an issue there. If you're in PowerShell, use `build.ps1` instead
+> (Option 3 below) — it's the native equivalent.
 
 **Option 2 — Bash script (Linux/macOS, Git Bash, WSL):**
 
@@ -77,8 +84,9 @@ operating systems before anything is released.
 
 ## Automated releases
 
-[`.github/workflows/ui-release.yml`](../.github/workflows/ui-release.yml)
-triggers when a tag matching `v*` (e.g. `v1.0.0`) is pushed:
+[`.github/workflows/ui-release.yml`](../.github/workflows/ui-release.yml) has
+a `prepare` job that resolves a single version string used by every other
+job, then:
 
 1. Runs the Go test suite once on `ubuntu-latest`.
 2. Cross-compiles the six OS/architecture binaries listed above (from a single
@@ -87,35 +95,77 @@ triggers when a tag matching `v*` (e.g. `v1.0.0`) is pushed:
 3. Packages each binary together with `ui/README.md`, `ui/README.en.md`, and
    `ui/config.yaml.example` into a `.zip` (Windows) or `.tar.gz`
    (Linux/macOS) archive.
-4. Publishes a GitHub Release for the tag with all six archives attached and
-   auto-generated release notes.
+4. Publishes a GitHub Release for the resolved version with all six archives
+   attached and auto-generated release notes. The release's git tag is
+   created automatically if it doesn't exist yet.
 
-### Publishing a new release
+The workflow can be triggered two ways, and **both produce a real release**:
+
+### 1. Tag push (normal flow)
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.2
+git push origin v0.2
 ```
 
-Within a few minutes, a new release with the six platform archives will
-appear under the repository's **Releases** page.
+The version is taken directly from the tag name.
 
-You can also trigger a one-off dev build without pushing a tag via
-**Actions → UI Release → Run workflow** (`workflow_dispatch`); it will build
-and upload artifacts (but only publishes a GitHub Release when run from an
-actual `v*` tag).
+### 2. Manual dispatch
+
+Go to **Actions → UI Release → Run workflow**:
+
+- Leave the **version** input empty to release whatever is currently in
+  [`ui/VERSION`](../ui/VERSION) — this is the easiest way to (re-)publish the
+  "current" version without creating a tag by hand first.
+- Or fill in **version** (e.g. `v0.2-rc1`) to cut an ad-hoc release.
+
+> **Previously**, manual dispatch silently built artifacts but never
+> published a release, because the publish step was gated behind
+> `if: startsWith(github.ref, 'refs/tags/v')` — which is never true for a
+> `workflow_dispatch` run (the ref is a branch, not a tag). The release job
+> no longer has that gate: the version is resolved once up front (from the
+> tag, the manual input, or `ui/VERSION`) and is always used to publish the
+> release, regardless of trigger type.
+
+Within a few minutes of either trigger, a new release with the six platform
+archives will appear under the repository's **Releases** page.
 
 ## Versioning
 
-The binary embeds a version string at build time via
-`-ldflags "-X main.version=..."`:
+[`ui/VERSION`](../ui/VERSION) is the single source of truth for the
+project's **next planned release** (currently `0.1`). It follows a plain
+`MAJOR.MINOR` (or `MAJOR.MINOR.PATCH`) scheme — no leading `v`, no trailing
+newline content beyond the number itself.
 
-- Local builds (`make`, `build.sh`, `build.ps1`) default to
-  `git describe --tags --always --dirty`, or `dev` if not in a git repo.
-- CI release builds use the pushed tag name (e.g. `v1.0.0`).
+To cut a new release:
+
+1. Bump `ui/VERSION` (e.g. `0.1` → `0.2`) in a commit/PR.
+2. Either push a matching tag (`git tag v0.2 && git push origin v0.2`), or
+   trigger **UI Release** manually with the version input left empty — both
+   read the same value.
+
+The binary embeds the resolved version at build time via
+`-ldflags "-X main.version=..."`. Resolution order (identical across
+`make`, `build.sh`, `build.ps1`, and CI):
+
+1. An explicit override (`VERSION=v0.2 ./build.sh`, `make VERSION=v0.2`, or
+   the CI `version` input).
+2. The exact git tag pointing at the current commit (e.g. `v0.1`).
+3. The `ui/VERSION` file, suffixed with `-dev+<short-sha>` for local/dev
+   builds (e.g. `v0.1-dev+a1b2c3d`, with a `-dirty` suffix if the working
+   tree has uncommitted changes).
+4. `dev` as a last resort (no git, no `VERSION` file).
+
+Versions below `v1.0.0` (i.e. `v0.x`) are automatically marked as a
+**pre-release** on GitHub.
 
 Check the running binary's version with:
 
 ```bash
 eping --version
 ```
+
+### First release
+
+The project's first tagged release is **`v0.1`**, matching the initial value
+of `ui/VERSION`.

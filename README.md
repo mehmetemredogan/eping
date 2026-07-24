@@ -166,16 +166,23 @@ GitHub Actions üzerinde Go terminal istemcisi için iki iş akışı bulunur:
 
 - **`ui-ci.yml`** — `ui/**` altında her push/PR'da Windows, Linux ve macOS
   runner'larında `go vet`, `go test` ve `go build` çalıştırır.
-- **`ui-release.yml`** — `v*` formatında bir git tag'i push edildiğinde Windows
+- **`ui-release.yml`** — `v*` formatında bir git tag'i push edildiğinde **veya**
+  Actions sekmesinden manuel çalıştırıldığında (`workflow_dispatch`) Windows
   (amd64/arm64), Linux (amd64/arm64) ve macOS (amd64/arm64) için binary'leri
   cross-compile eder, arşivler ve otomatik bir GitHub Release oluşturup ekler.
+  Sürüm numarası `ui/VERSION` dosyasından (manuel çalıştırmada girdi
+  boş bırakılırsa) veya tag adından okunur — bkz. [`docs/BUILD.md`](docs/BUILD.md#versioning).
 
-Yeni bir sürüm yayınlamak için:
+Yeni bir sürüm yayınlamak için `ui/VERSION` dosyasını güncelleyip tag'i push edin:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.1
+git push origin v0.1
 ```
+
+veya tag oluşturmadan **Actions → UI Release → Run workflow** ile manuel tetikleyin
+(sürüm alanı boş bırakılırsa `ui/VERSION` içindeki değer — projenin ilk sürümü
+olan `0.1` — kullanılır).
 
 Yerel olarak tüm platformlar için derlemek isterseniz `ui/Makefile`,
 `ui/build.sh` (Linux/macOS) veya `ui/build.ps1` (Windows) betiklerini kullanabilirsiniz;

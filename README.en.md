@@ -169,16 +169,24 @@ There are two GitHub Actions workflows for the Go terminal client:
 
 - **`ui-ci.yml`** — runs `go vet`, `go test`, and `go build` on Windows, Linux, and
   macOS runners for every push/PR touching `ui/**`.
-- **`ui-release.yml`** — when a `v*` git tag is pushed, cross-compiles binaries for
-  Windows (amd64/arm64), Linux (amd64/arm64), and macOS (amd64/arm64), archives
-  them, and automatically creates a GitHub Release with the artifacts attached.
+- **`ui-release.yml`** — triggered by pushing a `v*` git tag **or** by running
+  it manually from the Actions tab (`workflow_dispatch`). Either way it
+  cross-compiles binaries for Windows (amd64/arm64), Linux (amd64/arm64), and
+  macOS (amd64/arm64), archives them, and automatically creates a GitHub
+  Release with the artifacts attached. The version is read from the tag name,
+  or from [`ui/VERSION`](ui/VERSION) when triggered manually with no input —
+  see [`docs/BUILD.md`](docs/BUILD.md#versioning).
 
-To publish a new release:
+To publish a new release, bump `ui/VERSION` and push a matching tag:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v0.1
+git push origin v0.1
 ```
+
+or trigger it manually via **Actions → UI Release → Run workflow** without
+creating a tag first (leaving the version input empty uses `ui/VERSION`,
+currently `0.1`, the project's first release).
 
 To build for all platforms locally, use `ui/Makefile`, `ui/build.sh`
 (Linux/macOS), or `ui/build.ps1` (Windows); see [`docs/BUILD.md`](docs/BUILD.md)
