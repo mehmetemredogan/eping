@@ -13,7 +13,7 @@
     <header class="sticky top-0 z-50 border-b border-neutral-950 bg-white">
         <div class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
             <div class="flex min-w-0 items-center gap-6">
-                <a href="{{ route('ping.index') }}" class="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-neutral-950">
+                <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-neutral-950">
                     <span class="flex h-6 w-6 items-center justify-center border border-neutral-950 bg-neutral-950 text-[10px] text-white">></span>
                     <span>PING</span>
                 </a>
@@ -85,9 +85,6 @@
             @click.outside="close()"
         >
             <nav class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 text-sm">
-                <a href="{{ route('ping.index') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('ping.index') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
-                    {{ __('ping.nav_test') }}
-                </a>
                 @auth
                     <a href="{{ route('history.index') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('history.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
                         {{ __('ping.nav_history') }}

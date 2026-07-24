@@ -13,10 +13,13 @@
 ePing is a latency-testing platform that lets you measure your network's round-trip
 time to various cloud providers, game servers, and CDNs. It consists of two parts:
 
-- **Web application** (this repository — Laravel 13): browser-based HTTP latency
-  testing, test history, an admin panel, and a general-purpose REST API.
+- **Web application** (this repository — Laravel 13): account/session management,
+  a member panel showing the history of tests run with the terminal client, an
+  admin panel, and the REST API the terminal client talks to. There is **no**
+  browser-based ping tool — all measurements are performed by the terminal client.
 - **Terminal client** ([`ui/`](ui/) — Go): a TUI (terminal user interface) tool that
-  talks to the API and combines HTTP/ICMP latency measurement with traceroute analysis.
+  talks to the API and is the actual measurement tool, combining HTTP latency
+  measurement with traceroute analysis.
 
 ## Table of contents
 
@@ -37,15 +40,14 @@ time to various cloud providers, game servers, and CDNs. It consists of two part
 ## Features
 
 - 🌍 **Global target list** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
-  Hetzner, Vultr, OVH, game servers and more, grouped by category and provider.
-- ⚡ **Browser-based measurement** — Latency is an HTTP TTFB measurement close to
-  DevTools' "Waiting for server response"; outlier cold handshakes are filtered out.
+  Hetzner, Vultr, OVH, game servers and more, grouped by category and provider
+  (tested via the terminal client).
 - 🖥️ **Terminal client** — HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
-  OS `tracert`/`traceroute`-based hop analysis.
+  OS `tracert`/`traceroute`-based hop analysis; the sole measurement tool.
+- 👤 **Member panel** — Lists the history of tests you ran with the terminal
+  client, grouped by date.
 - 📈 **Historical comparison** — For logged-in users, shows an improving/degrading
-  trend compared to their measurement history.
-- 🌐 **Client network detection** — IP/location lookup (Free IP API) and DNS/EDNS
-  Client Subnet detection.
+  trend compared to their measurement history (via the API, `/api/v1/results/trend`).
 - 🛠️ **Admin panel** — Manage targets, providers, and test logs; dashboard statistics.
 - 🔐 **Minimal authentication** — Username + password only (no email/real name
   required), with Sanctum tokens on the API side.
@@ -58,17 +60,20 @@ time to various cloud providers, game servers, and CDNs. It consists of two part
 ┌─────────────────────┐        HTTPS / JSON        ┌──────────────────────┐
 │    Web frontend      │ ◄─────────────────────────► │  Laravel API (v1)    │
 │  (Blade + Alpine.js)│                              │  routes/api.php      │
-└─────────────────────┘                              └──────────┬───────────┘
-                                                                  │
-┌─────────────────────┐        HTTPS / JSON                     │
-│   Go terminal client │◄────────────────────────────────────────┘
-│       (ui/)          │
+│  auth + member panel │                              └──────────┬───────────┘
+│  + admin panel       │                                         │
+└─────────────────────┘                              ┌───────────┴───────────┐
+                                                       │
+┌─────────────────────┐        HTTPS / JSON           │
+│   Go terminal client │◄──────────────────────────────┘
+│  (ui/) — the actual  │
+│   measurement tool   │
 └─────────────────────┘
 ```
 
 The backend stores the target list and test results in PostgreSQL (or SQLite for
-tests); ping/traceroute measurements can be run independently both from the web
-side (PHP `PingService`) and from the Go client.
+tests). Ping measurement is only performed by the Go terminal client and submitted
+via the API; the web app displays those results in the member panel and admin panel.
 
 ## Requirements
 
@@ -146,7 +151,7 @@ For details, keyboard shortcuts, and measurement logic, see
 
 ## Language support
 
-The web UI (ping test pages, history, login/register) and the admin panel are
+The web UI (login/register, member panel/history) and the admin panel are
 fully translated into **Turkish (tr)** and **English (en)**. Language selection:
 
 - Can be switched instantly via the `TR` / `EN` toggle in the top navigation
@@ -180,13 +185,13 @@ There are two GitHub Actions workflows for the Go terminal client:
 To publish a new release, bump `ui/VERSION` and push a matching tag:
 
 ```bash
-git tag v0.1
-git push origin v0.1
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 or trigger it manually via **Actions → UI Release → Run workflow** without
 creating a tag first (leaving the version input empty uses `ui/VERSION`,
-currently `0.1`, the project's first release).
+currently `0.1.1`).
 
 To build for all platforms locally, use `ui/Makefile`, `ui/build.sh`
 (Linux/macOS), or `ui/build.ps1` (Windows); see [`docs/BUILD.md`](docs/BUILD.md)

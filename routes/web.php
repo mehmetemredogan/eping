@@ -7,16 +7,17 @@ use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\CaptchaController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\LocaleController;
-use App\Http\Controllers\PingController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PingController::class, 'index'])->name('ping.index');
+// No public homepage / browser-based ping tool: the web app only serves
+// auth, the member panel (ping history submitted by the terminal client),
+// and the admin panel. `/` just routes visitors to the right place.
+Route::get('/', function () {
+    return redirect()->route(auth()->check() ? 'history.index' : 'login');
+})->name('home');
+
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 Route::get('/captcha', [CaptchaController::class, 'image'])->middleware('throttle:30,1')->name('captcha.image');
-
-Route::middleware('throttle:60,1')->group(function () {
-    Route::post('/api/ping/{target}/report', [PingController::class, 'report'])->name('ping.report');
-});
 
 Route::middleware('auth')->group(function () {
     Route::get('/history', [HistoryController::class, 'index'])->name('history.index');

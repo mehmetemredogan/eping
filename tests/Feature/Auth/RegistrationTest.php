@@ -30,7 +30,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('ping.index', absolute: false));
+        $response->assertRedirect(route('history.index', absolute: false));
         $this->assertDatabaseHas('users', ['username' => 'test_user']);
     }
 

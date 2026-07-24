@@ -133,14 +133,14 @@ archives will appear under the repository's **Releases** page.
 ## Versioning
 
 [`ui/VERSION`](../ui/VERSION) is the single source of truth for the
-project's **next planned release** (currently `0.1`). It follows a plain
+project's **next planned release** (currently `0.1.1`). It follows a plain
 `MAJOR.MINOR` (or `MAJOR.MINOR.PATCH`) scheme — no leading `v`, no trailing
 newline content beyond the number itself.
 
 To cut a new release:
 
-1. Bump `ui/VERSION` (e.g. `0.1` → `0.2`) in a commit/PR.
-2. Either push a matching tag (`git tag v0.2 && git push origin v0.2`), or
+1. Bump `ui/VERSION` (e.g. `0.1.1` → `0.1.2`) in a commit/PR.
+2. Either push a matching tag (`git tag v0.1.2 && git push origin v0.1.2`), or
    trigger **UI Release** manually with the version input left empty — both
    read the same value.
 
@@ -168,4 +168,4 @@ eping --version
 ### First release
 
 The project's first tagged release is **`v0.1`**, matching the initial value
-of `ui/VERSION`.
+of `ui/VERSION`. Subsequent releases (e.g. `v0.1.1`) follow the same process.

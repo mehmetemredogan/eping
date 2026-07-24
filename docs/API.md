@@ -165,10 +165,10 @@ Without `target_id`, returns an overall summary (`↑ improving` / `↓ degradin
 
 ## Web-only endpoints
 
-These are not part of the versioned API but are used by the browser-based test
-page (`routes/web.php`):
+These are not part of the versioned API and are only used by the Blade web app
+itself (`routes/web.php`) — auth, the member panel, and the admin panel:
 
 - `POST /locale` — switches the UI language (`tr`/`en`) for the current session.
 - `GET /captcha` — returns a captcha image (registration flow).
-- `POST /api/ping/{target}/report` — records a browser-based ping result
-  (rate limit: 60/minute).
+- `GET /history` — the member panel: lists the authenticated user's ping
+  results (submitted by the terminal client via the API above), grouped by date.

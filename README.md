@@ -13,10 +13,13 @@
 ePing, farklı bulut sağlayıcıları, oyun sunucuları ve CDN'lere olan ağ gecikmenizi
 ölçmenizi sağlayan bir gecikme (latency) test platformudur. İki parçadan oluşur:
 
-- **Web uygulaması** (bu depo — Laravel 13): Tarayıcıdan HTTP tabanlı gecikme testi,
-  test geçmişi, admin paneli ve genel bir REST API sunar.
-- **Terminal istemcisi** ([`ui/`](ui/) — Go): API'ye bağlanan, ICMP/HTTP gecikme ölçümü
-  ve traceroute analizini bir arada gösteren TUI (terminal kullanıcı arayüzü) aracı.
+- **Web uygulaması** (bu depo — Laravel 13): Üyelik/oturum yönetimi, terminal
+  istemcisiyle yapılan testlerin görüntülendiği üye paneli, admin paneli ve
+  terminal istemcisinin kullandığı REST API'yi sunar. Tarayıcı üzerinden ping
+  testi **yapılmaz** — ölçüm yalnızca terminal istemcisi ile gerçekleştirilir.
+- **Terminal istemcisi** ([`ui/`](ui/) — Go): API'ye bağlanan, HTTP gecikme ölçümü
+  ve traceroute analizini bir arada gösteren, asıl test aracı olan TUI (terminal
+  kullanıcı arayüzü).
 
 ## İçindekiler
 
@@ -38,14 +41,13 @@ ePing, farklı bulut sağlayıcıları, oyun sunucuları ve CDN'lere olan ağ ge
 
 - 🌍 **Global hedef listesi** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
   Hetzner, Vultr, OVH, oyun sunucuları ve daha fazlası, kategoriye ve sağlayıcıya
-  göre gruplanmış.
-- ⚡ **Tarayıcı tabanlı ölçüm** — Gecikme, DevTools "Waiting for server response"
-  metriğine yakın bir HTTP TTFB ölçümüdür; aykırı soğuk el sıkışmaları filtrelenir.
+  göre gruplanmış (terminal istemcisi üzerinden test edilir).
 - 🖥️ **Terminal istemcisi** — HTTP TTFB (DNS/TCP/TLS kırılımı, p50/p95) ve
-  OS `tracert`/`traceroute` tabanlı hop analizi.
+  OS `tracert`/`traceroute` tabanlı hop analizi; tek ölçüm aracı budur.
+- 👤 **Üye paneli** — Terminal istemcisiyle yaptığınız testlerin geçmişini
+  tarihe göre listeler.
 - 📈 **Geçmişle karşılaştırma** — Giriş yapan kullanıcılar için geçmiş ölçümlere
-  göre iyileşme/kötüleşme trendi.
-- 🌐 **Client ağ tespiti** — IP/konum (Free IP API) ve DNS/EDNS Client Subnet tespiti.
+  göre iyileşme/kötüleşme trendi (API üzerinden, `/api/v1/results/trend`).
 - 🛠️ **Admin paneli** — Hedef, sağlayıcı ve test logu yönetimi; dashboard istatistikleri.
 - 🔐 **Basit kimlik doğrulama** — Yalnızca kullanıcı adı + parola (e-posta/isim istenmez),
   API tarafında Sanctum token ile.
@@ -57,17 +59,21 @@ ePing, farklı bulut sağlayıcıları, oyun sunucuları ve CDN'lere olan ağ ge
 ┌─────────────────────┐        HTTPS / JSON        ┌──────────────────────┐
 │   Web arayüzü        │ ◄─────────────────────────► │  Laravel API (v1)    │
 │  (Blade + Alpine.js)│                              │  routes/api.php      │
-└─────────────────────┘                              └──────────┬───────────┘
-                                                                  │
-┌─────────────────────┐        HTTPS / JSON                     │
-│  Go terminal istemcisi│◄────────────────────────────────────────┘
-│       (ui/)          │
+│  auth + üye paneli   │                              └──────────┬───────────┘
+│  + admin paneli      │                                         │
+└─────────────────────┘                              ┌───────────┴───────────┐
+                                                       │
+┌─────────────────────┐        HTTPS / JSON           │
+│  Go terminal istemcisi│◄──────────────────────────────┘
+│  (ui/) — asıl ölçüm  │
+│       aracı          │
 └─────────────────────┘
 ```
 
 Backend, hedef listesini ve test sonuçlarını PostgreSQL (veya SQLite, test ortamı)
-üzerinde saklar; ping/traceroute ölçümleri hem web tarafında (PHP `PingService`)
-hem de Go istemcisinde bağımsız olarak yapılabilir.
+üzerinde saklar. Ping ölçümü yalnızca Go terminal istemcisi tarafından yapılır ve
+sonuçlar API üzerinden gönderilir; web uygulaması bu sonuçları üye paneli ve admin
+panelinde görüntüler.
 
 ## Gereksinimler
 
@@ -144,7 +150,7 @@ Detaylar, klavye kısayolları ve ölçüm mantığı için: [`ui/README.md`](ui
 
 ## Dil desteği
 
-Web arayüzü (ping test sayfaları, geçmiş, giriş/kayıt) ve admin paneli
+Web arayüzü (giriş/kayıt, üye paneli/geçmiş) ve admin paneli
 **Türkçe (tr)** ve **İngilizce (en)** olarak tam çevrilidir. Dil seçimi:
 
 - Üst menüdeki `TR` / `EN` düğmesiyle anlık değiştirilebilir (oturum bazlı, `session('locale')`).
@@ -176,13 +182,13 @@ GitHub Actions üzerinde Go terminal istemcisi için iki iş akışı bulunur:
 Yeni bir sürüm yayınlamak için `ui/VERSION` dosyasını güncelleyip tag'i push edin:
 
 ```bash
-git tag v0.1
-git push origin v0.1
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 veya tag oluşturmadan **Actions → UI Release → Run workflow** ile manuel tetikleyin
-(sürüm alanı boş bırakılırsa `ui/VERSION` içindeki değer — projenin ilk sürümü
-olan `0.1` — kullanılır).
+(sürüm alanı boş bırakılırsa `ui/VERSION` içindeki güncel değer — şu an `0.1.1` —
+kullanılır).
 
 Yerel olarak tüm platformlar için derlemek isterseniz `ui/Makefile`,
 `ui/build.sh` (Linux/macOS) veya `ui/build.ps1` (Windows) betiklerini kullanabilirsiniz;

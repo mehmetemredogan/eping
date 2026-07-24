@@ -5,7 +5,7 @@ return [
     'nav_targets' => 'Hedefler',
     'nav_providers' => 'Sağlayıcılar',
     'nav_results' => 'Test logları',
-    'nav_back_to_test' => 'Test sayfası',
+    'nav_back_to_panel' => 'Üye paneli',
     'menu' => 'Menü',
     'account' => 'Hesap',
 
@@ -58,7 +58,7 @@ return [
 
     // Providers
     'providers_title' => 'Sağlayıcılar',
-    'providers_hint' => 'Açıklamalar ana sayfada sağlayıcı başlığının altında gösterilir. Markdown desteklenir: **kalın**, *italik*, [link](https://...), `kod`',
+    'providers_hint' => 'Açıklamalarda Markdown desteklenir: **kalın**, *italik*, [link](https://...), `kod`',
     'col_provider' => 'Sağlayıcı',
     'col_target_count' => 'Hedef',
     'col_description' => 'Açıklama',

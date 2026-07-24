@@ -5,7 +5,7 @@ return [
     'nav_targets' => 'Targets',
     'nav_providers' => 'Providers',
     'nav_results' => 'Test logs',
-    'nav_back_to_test' => 'Test page',
+    'nav_back_to_panel' => 'Member panel',
     'menu' => 'Menu',
     'account' => 'Account',
 
@@ -58,7 +58,7 @@ return [
 
     // Providers
     'providers_title' => 'Providers',
-    'providers_hint' => 'Descriptions are shown under the provider heading on the homepage. Markdown is supported: **bold**, *italic*, [link](https://...), `code`',
+    'providers_hint' => 'Descriptions support Markdown: **bold**, *italic*, [link](https://...), `code`',
     'col_provider' => 'Provider',
     'col_target_count' => 'Targets',
     'col_description' => 'Description',

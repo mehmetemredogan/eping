@@ -60,6 +60,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('ping.index');
+        return redirect()->route('history.index');
     }
 }

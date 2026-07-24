@@ -11,7 +11,7 @@
 </head>
 <body class="min-h-screen bg-white text-neutral-950 antialiased">
     <div class="bg-grid flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <a href="{{ route('ping.index') }}" class="mb-8 flex items-center gap-2 text-base font-semibold tracking-tight">
+        <a href="{{ route('home') }}" class="mb-8 flex items-center gap-2 text-base font-semibold tracking-tight">
             <span class="flex h-7 w-7 items-center justify-center border border-neutral-950 bg-neutral-950 text-[11px] text-white">>_</span>
             <span>PING</span>
         </a>
@@ -26,7 +26,6 @@
                 {{ $slot }}
             </div>
         </div>
-        <a href="{{ route('ping.index') }}" class="mono mt-6 text-xs text-neutral-500 hover:text-neutral-950">← {{ __('ping.back_to_test') }}</a>
     </div>
 </body>
 </html>

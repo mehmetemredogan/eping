@@ -7,13 +7,14 @@ over HTTP/JSON:
 ┌────────────────────────────┐
 │         Browser             │
 │  Blade + Alpine.js frontend │
+│  (auth + member/admin only) │
 └──────────────┬───────────────┘
                │ session cookies (web guard)
                ▼
 ┌─────────────────────────────────────────────┐
 │               Laravel 13 app                 │
 │                                               │
-│  routes/web.php   → ping/history/admin pages │
+│  routes/web.php   → auth/history/admin pages │
 │  routes/api.php   → /api/v1/* (Sanctum auth) │
 │                                               │
 │  Controllers → Services → Models → DB        │
@@ -25,35 +26,38 @@ over HTTP/JSON:
 │           (ui/)              │
 │  Bubble Tea TUI, independent │
 │  Go module (pinglab/ui)      │
+│  — the only measurement tool │
 └─────────────────────────────┘
 ```
 
 ## Web application (Laravel)
 
-- **Routing** — `routes/web.php` (Blade pages, session auth), `routes/api.php`
-  (stateless JSON API, Sanctum token auth), `routes/auth.php` (Breeze-based
-  login/register).
-- **Controllers** — thin; delegate measurement/DNS/geo logic to `app/Services/*`.
-  Split into `Http/Controllers` (public pages), `Http/Controllers/Api` (v1 JSON
-  API), and `Http/Controllers/Admin` (admin panel, behind `auth` + `admin`
-  middleware).
+The web app has **no browser-based ping tool**. It only provides authentication,
+a member panel (ping history submitted by the terminal client), the admin panel,
+and the REST API the terminal client talks to.
+
+- **Routing** — `routes/web.php` (`/` redirects to the member panel or login,
+  `/history` = member panel, `/admin/*`; Blade pages, session auth),
+  `routes/api.php` (stateless JSON API, Sanctum token auth), `routes/auth.php`
+  (Breeze-based login/register).
+- **Controllers** — thin; delegate DNS/geo logic to `app/Services/*`.
+  Split into `Http/Controllers` (member panel/history), `Http/Controllers/Api`
+  (v1 JSON API used by the terminal client), and `Http/Controllers/Admin`
+  (admin panel, behind `auth` + `admin` middleware).
 - **Services**:
-  - `PingService` — runs the actual ICMP/HTTP ping against a target host.
-  - `DnsLookupService` — resolves DNS records, PTR (rDNS), and EDNS/DoH data.
-  - `PingTestService` — orchestrates a full ping+DNS test and persists a
-    `PingResult`.
-  - `FreeIpApiService` — resolves the client's IP to a city/country/ASN via a
-    third-party geo API.
+  - `DnsLookupService` — resolves DNS records, PTR (rDNS), and EDNS/DoH data
+    for results submitted via the API.
   - `NetworkTrendService` — compares a user's recent results against their own
     historical baseline (used by `/api/v1/results/trend`).
   - `CaptchaService` — generates the registration captcha image/answer pair.
 - **Models** — `PingTarget` (host + category + provider metadata),
-  `PingResult` (one measurement row, including client geo/DNS JSON blobs and
-  Go-client-submitted `network_analysis`), `Provider` (Markdown description
-  shown per provider group), `User` (username/password auth, `is_admin` flag).
+  `PingResult` (one measurement row per terminal-client submission, including
+  DNS JSON blobs and the Go-client-submitted `network_analysis`), `Provider`
+  (Markdown description, managed in the admin panel), `User`
+  (username/password auth, `is_admin` flag).
 - **Middleware** — `SetLocale` (resolves `tr`/`en` from the session on every web
   request), `EnsureUserIsAdmin` (guards `/admin/*`).
-- **Localization** — `lang/{tr,en}/ping.php` (public UI + shared strings) and
+- **Localization** — `lang/{tr,en}/ping.php` (auth + member panel strings) and
   `lang/{tr,en}/admin.php` (admin panel).
 
 ## Terminal client (`ui/`, Go)
@@ -81,18 +85,15 @@ comparisons.
 
 ## Data flow: running a test
 
-1. **Browser flow**: `resources/js/client-ping.js` performs an HTTP request
-   against the target and posts the timing back to
-   `POST /api/ping/{target}/report`, which uses `PingTestService` to persist a
-   `PingResult` alongside a fresh DNS lookup.
-2. **Terminal client flow**: the Go client measures HTTP TTFB and (optionally)
-   runs a traceroute locally, then submits the result directly via
-   `POST /api/v1/targets/{target}/results`. DNS lookup for the stored result is
-   performed server-side at submission time.
+The Go terminal client measures HTTP TTFB and (optionally) runs a traceroute
+locally, then submits the result via `POST /api/v1/targets/{target}/results`.
+DNS lookup for the stored result is performed server-side (`DnsLookupService`)
+at submission time, and the result is persisted to the `ping_results` table
+with the submitting user's `user_id` (from the Sanctum token).
 
-In both flows, results are stored in the same `ping_results` table, so the
-admin panel and history/trend features work uniformly regardless of which
-client produced the measurement.
+The web app's member panel (`/history`) and the admin panel's results view
+both read from that same table — they display whatever the terminal client
+has submitted, they don't produce measurements themselves.
 
 ## Storage
 

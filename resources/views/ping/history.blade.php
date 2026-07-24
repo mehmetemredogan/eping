@@ -18,7 +18,6 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <button type="submit" class="border border-neutral-950 bg-white px-4 py-2 text-sm transition-colors hover:bg-neutral-950 hover:text-white">{{ __('ping.filter') }}</button>
-                <a href="{{ route('ping.index') }}" class="px-4 py-2 text-sm text-neutral-500 hover:text-neutral-950">← {{ __('ping.back_to_test') }}</a>
             </div>
         </form>
 
