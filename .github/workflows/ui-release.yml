@@ -189,5 +189,8 @@ jobs:
           prerelease: ${{ startsWith(needs.prepare.outputs.version, 'v0.') }}
 
       - name: Summary
+        # Override the job-wide `working-directory: ui` default: this job never
+        # checks out the repo, so no `ui/` directory exists on the runner.
+        working-directory: .
         run: |
           echo "Published release **${{ needs.prepare.outputs.version }}**." >> "$GITHUB_STEP_SUMMARY"
