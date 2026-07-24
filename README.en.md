@@ -1,0 +1,215 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.3%2B-777bb4?logo=php&logoColor=white" alt="PHP">
+  <img src="https://img.shields.io/badge/Laravel-13-ff2d20?logo=laravel&logoColor=white" alt="Laravel">
+  <img src="https://img.shields.io/badge/Go-1.24%2B-00add8?logo=go&logoColor=white" alt="Go">
+  <a href="https://github.com/mehmetemredogan/eping/actions/workflows/ui-ci.yml"><img src="https://github.com/mehmetemredogan/eping/actions/workflows/ui-ci.yml/badge.svg" alt="UI CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-informational" alt="License">
+</p>
+
+<p align="center"><a href="README.md">🇹🇷 Türkçe</a> · <b>🇬🇧 English</b></p>
+
+# ePing (Extended Ping)
+
+ePing is a latency-testing platform that lets you measure your network's round-trip
+time to various cloud providers, game servers, and CDNs. It consists of two parts:
+
+- **Web application** (this repository — Laravel 13): browser-based HTTP latency
+  testing, test history, an admin panel, and a general-purpose REST API.
+- **Terminal client** ([`ui/`](ui/) — Go): a TUI (terminal user interface) tool that
+  talks to the API and combines HTTP/ICMP latency measurement with traceroute analysis.
+
+## Table of contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Development](#development)
+- [Testing](#testing)
+- [Terminal client (ui/)](#terminal-client-ui)
+- [Language support](#language-support)
+- [CI/CD and builds](#cicd-and-builds)
+- [Project structure](#project-structure)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+- 🌍 **Global target list** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
+  Hetzner, Vultr, OVH, game servers and more, grouped by category and provider.
+- ⚡ **Browser-based measurement** — Latency is an HTTP TTFB measurement close to
+  DevTools' "Waiting for server response"; outlier cold handshakes are filtered out.
+- 🖥️ **Terminal client** — HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
+  OS `tracert`/`traceroute`-based hop analysis.
+- 📈 **Historical comparison** — For logged-in users, shows an improving/degrading
+  trend compared to their measurement history.
+- 🌐 **Client network detection** — IP/location lookup (Free IP API) and DNS/EDNS
+  Client Subnet detection.
+- 🛠️ **Admin panel** — Manage targets, providers, and test logs; dashboard statistics.
+- 🔐 **Minimal authentication** — Username + password only (no email/real name
+  required), with Sanctum tokens on the API side.
+- 🌍 **Multilingual UI** — Instant switching between Turkish and English (see
+  [Language support](#language-support)).
+
+## Architecture
+
+```
+┌─────────────────────┐        HTTPS / JSON        ┌──────────────────────┐
+│    Web frontend      │ ◄─────────────────────────► │  Laravel API (v1)    │
+│  (Blade + Alpine.js)│                              │  routes/api.php      │
+└─────────────────────┘                              └──────────┬───────────┘
+                                                                  │
+┌─────────────────────┐        HTTPS / JSON                     │
+│   Go terminal client │◄────────────────────────────────────────┘
+│       (ui/)          │
+└─────────────────────┘
+```
+
+The backend stores the target list and test results in PostgreSQL (or SQLite for
+tests); ping/traceroute measurements can be run independently both from the web
+side (PHP `PingService`) and from the Go client.
+
+## Requirements
+
+- PHP >= 8.3, Composer
+- Node.js >= 18, npm
+- PostgreSQL (production/development) or SQLite (testing)
+- Go >= 1.24 (only needed to build the `ui/` terminal client)
+
+## Installation
+
+```bash
+git clone git@github.com:mehmetemredogan/eping.git
+cd eping
+
+composer install
+cp .env.example .env
+php artisan key:generate
+
+# Edit the DB_* / DATABASE_URL values in .env
+php artisan migrate --seed
+
+npm install
+npm run build
+```
+
+For a one-command setup (dependencies, .env, migrations, frontend build):
+
+```bash
+composer run setup
+```
+
+Start the local server:
+
+```bash
+php artisan serve
+```
+
+The app runs at `http://localhost:8000` by default.
+
+## Development
+
+Runs the server, queue listener, log tailer, and Vite together in a single command:
+
+```bash
+composer run dev
+```
+
+## Testing
+
+```bash
+composer run test
+# or
+php artisan test
+```
+
+Tests use SQLite (`:memory:`) via `phpunit.xml`, so your real database is never touched.
+
+## Terminal client (ui/)
+
+The Go application in `ui/` fetches the target list from the API and displays
+ping/traceroute measurements in a terminal UI.
+
+```bash
+cd ui
+go mod tidy
+go run .
+```
+
+Configuration: `%AppData%/eping/config.yaml` (Windows) or
+`~/.config/eping/config.yaml` (Linux/macOS), or the `EPING_API_URL` environment
+variable.
+
+For details, keyboard shortcuts, and measurement logic, see
+[`ui/README.en.md`](ui/README.en.md) ([Türkçe](ui/README.md)).
+
+## Language support
+
+The web UI (ping test pages, history, login/register) and the admin panel are
+fully translated into **Turkish (tr)** and **English (en)**. Language selection:
+
+- Can be switched instantly via the `TR` / `EN` toggle in the top navigation
+  (session-based, `session('locale')`).
+- The default locale is controlled by `APP_LOCALE` in `.env` (see `.env.example`).
+- Translation files live under `lang/tr/` and `lang/en/`, split into `ping.php`
+  (general UI) and `admin.php` (admin panel).
+
+To add a new language:
+
+1. Create and translate `lang/<locale>/ping.php` and `lang/<locale>/admin.php`.
+2. Add the new locale code to the `in_array`/`validate` lists in
+   `app/Http/Middleware/SetLocale.php` and `app/Http/Controllers/LocaleController.php`.
+3. Add the new option to the language selector `<select>`/buttons in
+   `resources/views/layouts/ping.blade.php` and `layouts/admin.blade.php`.
+
+## CI/CD and builds
+
+There are two GitHub Actions workflows for the Go terminal client:
+
+- **`ui-ci.yml`** — runs `go vet`, `go test`, and `go build` on Windows, Linux, and
+  macOS runners for every push/PR touching `ui/**`.
+- **`ui-release.yml`** — when a `v*` git tag is pushed, cross-compiles binaries for
+  Windows (amd64/arm64), Linux (amd64/arm64), and macOS (amd64/arm64), archives
+  them, and automatically creates a GitHub Release with the artifacts attached.
+
+To publish a new release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+To build for all platforms locally, use `ui/Makefile`, `ui/build.sh`
+(Linux/macOS), or `ui/build.ps1` (Windows); see [`docs/BUILD.md`](docs/BUILD.md)
+for details.
+
+## Project structure
+
+```
+app/                    Laravel application code (Controllers, Models, Services, Middleware)
+config/                 Framework and application configuration
+database/               Migrations and seeders
+lang/                   tr/en translation files
+resources/              Blade views, CSS, JS
+routes/                 web.php, api.php, auth.php
+tests/                  PHPUnit Feature/Unit tests
+ui/                     Go-based terminal client (independent module)
+docs/                   Architecture, API, and build documentation
+.github/workflows/      CI/CD definitions
+```
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — System architecture and data flow
+- [`docs/API.md`](docs/API.md) — REST API reference (`/api/v1/*`)
+- [`docs/BUILD.md`](docs/BUILD.md) — Cross-platform build and release process for the Go client
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — Contribution guide
+
+## Contributing
+
+Contributions are welcome! Please see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## License
+
+This project is licensed under the [MIT license](https://opensource.org/licenses/MIT).

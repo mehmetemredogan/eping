@@ -1,0 +1,378 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body {
+        @apply bg-white text-neutral-950 antialiased;
+        font-feature-settings: 'calt' 0;
+    }
+
+    ::selection {
+        background: #0a0a0a;
+        color: #fff;
+    }
+
+    /* Keep text inputs / buttons / selects the same control height */
+    input[type='text'],
+    input[type='search'],
+    input[type='password'],
+    input[type='email'],
+    input[type='number'],
+    input[type='url'],
+    select,
+    .form-control {
+        box-sizing: border-box;
+        min-height: 2.375rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: #d4d4d4 transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: #d4d4d4;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+@layer utilities {
+    .mono {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .latency-ok {
+        @apply text-green-600;
+    }
+
+    .latency-warn {
+        @apply text-yellow-600;
+    }
+
+    .latency-bad {
+        @apply text-red-600;
+    }
+
+    .latency-none {
+        @apply text-neutral-400;
+    }
+
+    /* Faint blueprint grid for hero/header panels */
+    .bg-grid {
+        background-image:
+            linear-gradient(to right, rgba(10, 10, 10, 0.04) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(10, 10, 10, 0.04) 1px, transparent 1px);
+        background-size: 24px 24px;
+    }
+
+    /* Terminal-style blinking cursor */
+    .cursor-blink::after {
+        content: '_';
+        @apply animate-blink;
+    }
+}
+
+/* Rendered markdown (provider descriptions) */
+.md p {
+    margin: 0 0 0.35rem;
+}
+
+.md p:last-child {
+    margin-bottom: 0;
+}
+
+.md a {
+    color: #0a0a0a;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.md strong {
+    font-weight: 600;
+    color: #0a0a0a;
+}
+
+.md code {
+    border: 1px solid #e5e5e5;
+    background: #fafafa;
+    padding: 0 0.25rem;
+}
+
+.md ul,
+.md ol {
+    margin: 0.25rem 0;
+    padding-left: 1.1rem;
+}
+
+.md ul {
+    list-style: square;
+}
+
+.md ol {
+    list-style: decimal;
+}
+
+/* Select2 — match native inputs (px-3 py-2 text-sm ≈ 38px / 2.375rem) */
+.select2-container {
+    font-size: 0.875rem;
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+    z-index: 60;
+    vertical-align: middle;
+}
+
+.select2-container .select2-selection--single {
+    box-sizing: border-box;
+    height: 2.375rem;
+    min-height: 2.375rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 0;
+    background: #fff;
+    display: flex;
+    align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    box-sizing: border-box;
+    width: 100%;
+    line-height: 1.25rem;
+    padding: 0 1.75rem 0 0.75rem;
+    color: #0a0a0a;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1.75rem;
+    height: 100%;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__clear {
+    margin-right: 0.25rem;
+    height: auto;
+}
+
+.select2-dropdown {
+    border: 1px solid #0a0a0a;
+    border-radius: 0;
+    background: #fff;
+    z-index: 70;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #0a0a0a;
+    color: #fff;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    box-sizing: border-box;
+    height: 2.375rem;
+    border: 1px solid #d4d4d4;
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
+    outline: none;
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #0a0a0a;
+    outline: none;
+    box-shadow: none;
+}
+
+.select2-container--open {
+    z-index: 70;
+}
+
+/* simple-datatables — black & white terminal */
+.datatable-wrapper .datatable-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid #0a0a0a;
+    background: #fafafa;
+}
+
+.datatable-wrapper .datatable-search {
+    flex: 1 1 200px;
+    max-width: 320px;
+}
+
+.datatable-wrapper .datatable-input {
+    width: 100%;
+    height: 34px;
+    border: 1px solid #d4d4d4;
+    border-radius: 0;
+    background: #fff;
+    padding: 0 0.75rem;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    color: #0a0a0a;
+}
+
+.datatable-wrapper .datatable-input:focus {
+    border-color: #0a0a0a;
+    outline: none;
+    box-shadow: none;
+}
+
+.datatable-wrapper .datatable-input::placeholder {
+    color: #a3a3a3;
+}
+
+.datatable-wrapper .datatable-dropdown {
+    font-size: 0.75rem;
+    color: #737373;
+}
+
+.datatable-wrapper .datatable-selector {
+    height: 34px;
+    border: 1px solid #d4d4d4;
+    border-radius: 0;
+    background: #fff;
+    padding: 0 0.5rem;
+    margin-right: 0.4rem;
+    font-family: inherit;
+    font-size: 0.8125rem;
+}
+
+.datatable-wrapper .datatable-selector:focus {
+    border-color: #0a0a0a;
+    outline: none;
+}
+
+.datatable-wrapper .datatable-container {
+    border: 0;
+    overflow-x: auto;
+}
+
+.datatable-wrapper .datatable-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    border-top: 1px solid #e5e5e5;
+    background: #fafafa;
+    font-size: 0.75rem;
+    color: #737373;
+    font-variant-numeric: tabular-nums;
+}
+
+.datatable-wrapper .datatable-pagination ul {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.datatable-wrapper .datatable-pagination li {
+    margin: 0;
+}
+
+.datatable-wrapper .datatable-pagination a,
+.datatable-wrapper .datatable-pagination button {
+    display: inline-flex;
+    min-width: 1.9rem;
+    height: 1.9rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d4d4d4;
+    border-radius: 0;
+    background: #fff;
+    padding: 0 0.4rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    color: #0a0a0a;
+    cursor: pointer;
+}
+
+.datatable-wrapper .datatable-pagination a:hover,
+.datatable-wrapper .datatable-pagination button:hover {
+    border-color: #0a0a0a;
+}
+
+.datatable-wrapper .datatable-pagination .datatable-active a,
+.datatable-wrapper .datatable-pagination .datatable-active button {
+    border-color: #0a0a0a;
+    background: #0a0a0a;
+    color: #fff;
+}
+
+.datatable-wrapper .datatable-pagination .datatable-hidden {
+    display: none;
+}
+
+/* Sort buttons rendered inside th */
+.datatable-wrapper thead th {
+    white-space: nowrap;
+}
+
+.datatable-wrapper thead th button.datatable-sorter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+}
+
+.datatable-wrapper thead th button.datatable-sorter::after {
+    content: '↕';
+    color: #d4d4d4;
+    font-size: 0.7rem;
+}
+
+.datatable-wrapper thead th.datatable-ascending button.datatable-sorter::after {
+    content: '↑';
+    color: #0a0a0a;
+}
+
+.datatable-wrapper thead th.datatable-descending button.datatable-sorter::after {
+    content: '↓';
+    color: #0a0a0a;
+}
+
+.datatable-wrapper .datatable-empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #a3a3a3;
+}
