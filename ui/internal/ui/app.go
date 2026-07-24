@@ -155,7 +155,7 @@ type Model struct {
 
 func New(cfg config.Config) Model {
 	apiIn := textinput.New()
-	apiIn.Placeholder = "http://127.0.0.1:8000"
+	apiIn.Placeholder = "https://ping.mehmetemredogan.tr"
 	apiIn.SetValue(cfg.APIURL)
 	apiIn.CharLimit = 200
 	apiIn.Width = 28

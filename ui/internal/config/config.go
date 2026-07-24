@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultAPIURL = "http://127.0.0.1:8000"
+const defaultAPIURL = "https://ping.mehmetemredogan.tr"
 
 type Config struct {
 	APIURL         string `yaml:"api_url"`
