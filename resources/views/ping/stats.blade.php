@@ -1,15 +1,16 @@
 <x-ping-layout>
-    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        <div class="bg-grid mb-8 border border-neutral-950 px-4 py-6 sm:px-6">
-            <p class="mono mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">// {{ __('ping.nav_stats') }}</p>
-            <h1 class="text-2xl font-semibold tracking-tight">{{ __('ping.stats_title') }}</h1>
-            <p class="mt-2 max-w-3xl text-xs text-neutral-500 sm:text-sm">{{ __('ping.stats_subtitle') }}</p>
-            <p class="mono mt-3 text-[11px] text-neutral-400">{{ __('ping.stats_privacy_note') }}</p>
-        </div>
+    <x-page-shell>
+        <x-page-header
+            :eyebrow="__('ping.nav_stats')"
+            :title="__('ping.stats_title')"
+            :subtitle="__('ping.stats_subtitle')"
+        >
+            <x-slot:meta>{{ __('ping.stats_privacy_note') }}</x-slot:meta>
+        </x-page-header>
 
         <form method="GET" class="mb-8 grid gap-3 border border-neutral-200 bg-neutral-50 p-4 sm:grid-cols-2 lg:grid-cols-5">
             <div>
-                <label for="stats-isp" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.stats_isp') }}</label>
+                <x-form-label for="stats-isp" :value="__('ping.stats_isp')" />
                 <select id="stats-isp" name="isp" class="js-select2 w-full" data-width="100%" data-placeholder="{{ __('ping.stats_all_isps') }}" data-allow-clear="true">
                     <option value="">{{ __('ping.stats_all_isps') }}</option>
                     @foreach($isps as $isp)
@@ -18,7 +19,7 @@
                 </select>
             </div>
             <div>
-                <label for="stats-provider" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.stats_provider') }}</label>
+                <x-form-label for="stats-provider" :value="__('ping.stats_provider')" />
                 <select id="stats-provider" name="provider" class="js-select2 w-full" data-width="100%" data-placeholder="{{ __('ping.stats_all_providers') }}">
                     <option value="">{{ __('ping.stats_all_providers') }}</option>
                     @foreach($providers as $provider)
@@ -27,7 +28,7 @@
                 </select>
             </div>
             <div>
-                <label for="stats-country" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.stats_country') }}</label>
+                <x-form-label for="stats-country" :value="__('ping.stats_country')" />
                 <select id="stats-country" name="country" class="js-select2 w-full" data-width="100%" data-minimum-results-for-search="Infinity">
                     <option value="">{{ __('ping.stats_all_countries') }}</option>
                     @foreach($countries as $code)
@@ -36,14 +37,12 @@
                 </select>
             </div>
             <div>
-                <label for="stats-min" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.stats_min_samples') }}</label>
+                <x-form-label for="stats-min" :value="__('ping.stats_min_samples')" />
                 <input id="stats-min" type="number" name="min_samples" min="1" max="50" value="{{ $filters['min_samples'] }}"
                     class="w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none">
             </div>
             <div class="flex items-end">
-                <button type="submit" class="w-full border border-neutral-950 bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white hover:text-neutral-950">
-                    {{ __('ping.filter') }}
-                </button>
+                <x-ui-button type="submit" variant="primary" block>{{ __('ping.filter') }}</x-ui-button>
             </div>
         </form>
 
@@ -75,13 +74,6 @@
                 </thead>
                 <tbody>
                     @forelse($rows as $row)
-                        @php
-                            $ms = (float) $row->avg_latency_ms;
-                            $tone = $ms < 80 ? 'text-green-600' : ($ms < 180 ? 'text-yellow-600' : 'text-red-600');
-                            $formatLinkAvg = function (?float $value): string {
-                                return $value !== null ? $value.' ms' : '—';
-                            };
-                        @endphp
                         <tr class="border-b border-neutral-100 hover:bg-neutral-50" title="{{ $row->summary }}">
                             <td class="px-3 py-3">
                                 <div class="font-medium">{{ $row->isp }}</div>
@@ -94,9 +86,9 @@
                             <td class="px-3 py-3">{{ $row->target_name }}</td>
                             <td class="px-3 py-3 mono text-xs text-neutral-600">{{ $row->host }}</td>
                             <td class="px-3 py-3 mono text-xs">{{ $row->resolved_ip }}</td>
-                            <td class="px-3 py-3 text-right mono font-medium {{ $tone }}">{{ $row->avg_latency_ms }} ms</td>
-                            <td class="px-3 py-3 text-right mono text-xs text-neutral-600">{{ $formatLinkAvg($row->avg_wifi_ms) }}</td>
-                            <td class="px-3 py-3 text-right mono text-xs text-neutral-600">{{ $formatLinkAvg($row->avg_ethernet_ms) }}</td>
+                            <td class="px-3 py-3 text-right"><x-latency :ms="$row->avg_latency_ms" class="font-medium" /></td>
+                            <td class="px-3 py-3 text-right"><x-latency :ms="$row->avg_wifi_ms" class="text-xs" /></td>
+                            <td class="px-3 py-3 text-right"><x-latency :ms="$row->avg_ethernet_ms" class="text-xs" /></td>
                             <td class="px-3 py-3 text-right mono text-xs text-neutral-500">{{ $row->min_latency_ms }}–{{ $row->max_latency_ms }}</td>
                             <td class="px-3 py-3 text-right mono text-xs text-neutral-500">{{ $row->samples }}</td>
                             <td class="px-3 py-3 text-right mono text-[10px] text-neutral-500">
@@ -114,5 +106,5 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </x-page-shell>
 </x-ping-layout>

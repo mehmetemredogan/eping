@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PingTarget;
 use App\Models\Provider;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,6 +40,32 @@ class PingTargetController extends Controller
         return view('admin.targets.create', [
             'categories' => PingTarget::categories(),
             'providers' => $this->providerOptions(),
+        ]);
+    }
+
+    /**
+     * Next sort_order for a category: max(existing) + 1 (or 1 when empty).
+     */
+    public function nextSortOrder(Request $request): JsonResponse
+    {
+        $categorySlugs = array_keys(PingTarget::categories());
+
+        $validated = $request->validate([
+            'category' => ['required', 'string', Rule::in($categorySlugs)],
+            'exclude_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $max = PingTarget::query()
+            ->where('category', $validated['category'])
+            ->when(
+                filled($validated['exclude_id'] ?? null),
+                fn ($q) => $q->where('id', '!=', (int) $validated['exclude_id'])
+            )
+            ->max('sort_order');
+
+        return response()->json([
+            'category' => $validated['category'],
+            'next' => ((int) $max) + 1,
         ]);
     }
 

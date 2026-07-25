@@ -45,4 +45,15 @@ class HistoryController extends Controller
             'selectedDate' => $date,
         ]);
     }
+
+    public function show(Request $request, PingResult $result): View
+    {
+        abort_unless((int) $result->user_id === (int) $request->user()->id, 404);
+
+        $result->load('target');
+
+        return view('ping.history-show', [
+            'result' => $result,
+        ]);
+    }
 }

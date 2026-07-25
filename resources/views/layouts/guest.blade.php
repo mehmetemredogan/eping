@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Ping - mehmetemredogan.tr') }}</title>
-    @include('partials.favicon')
+    <x-favicon />
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-white text-neutral-950 antialiased">
     <div class="bg-grid flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <a href="{{ route('home') }}" class="mb-8 flex items-center gap-2 text-base font-semibold tracking-tight">
-            <span class="flex h-7 w-7 items-center justify-center border border-neutral-950 bg-neutral-950 text-[11px] text-white">>_</span>
-            <span>PING</span>
-        </a>
-        <div class="w-full max-w-md border border-neutral-950 bg-white">
+        <x-brand-mark size="lg" class="mb-8" />
+
+        <div class="w-full max-w-md border border-neutral-950 bg-white shadow-[4px_4px_0_0_#0a0a0a]">
             <div class="flex items-center gap-1.5 border-b border-neutral-950 bg-neutral-50 px-4 py-2">
                 <span class="h-2 w-2 rounded-full border border-neutral-950"></span>
                 <span class="h-2 w-2 rounded-full border border-neutral-950"></span>
@@ -27,12 +25,9 @@
                 {{ $slot }}
             </div>
         </div>
-        <nav class="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-neutral-500">
-            <a href="{{ route('legal.terms') }}" class="hover:text-neutral-950">{{ __('legal.nav_terms') }}</a>
-            <a href="{{ route('legal.privacy') }}" class="hover:text-neutral-950">{{ __('legal.nav_privacy') }}</a>
-            <a href="{{ route('legal.cookies') }}" class="hover:text-neutral-950">{{ __('legal.nav_cookies') }}</a>
-        </nav>
+
+        <x-site-footer compact />
     </div>
-    @include('partials.cookie-banner')
+    <x-cookie-banner />
 </body>
 </html>

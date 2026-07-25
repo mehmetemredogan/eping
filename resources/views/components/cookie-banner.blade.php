@@ -3,7 +3,7 @@
     x-cloak
     x-show="visible"
     x-transition.opacity
-    class="fixed inset-x-0 bottom-0 z-[60] border-t border-neutral-950 bg-white p-4 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] sm:p-5"
+    class="fixed inset-x-0 bottom-0 z-[60] border-t border-neutral-950 bg-white/95 p-4 backdrop-blur-sm sm:p-5"
     role="dialog"
     aria-live="polite"
     aria-label="{{ __('legal.nav_cookies') }}"

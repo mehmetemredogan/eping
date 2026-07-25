@@ -55,6 +55,8 @@ return [
     'field_country_code' => 'Country code',
     'field_description' => 'Description',
     'field_sort_order' => 'Sort order',
+    'field_sort_order_hint' => 'When you pick a category, this is filled with the last sort order in that category + 1.',
+
     'field_active' => 'Active',
     'save' => 'Save',
     'cancel' => 'Cancel',

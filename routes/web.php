@@ -26,6 +26,7 @@ Route::get('/captcha', [CaptchaController::class, 'image'])->middleware('throttl
 
 Route::middleware('auth')->group(function () {
     Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
+    Route::get('/history/{result}', [HistoryController::class, 'show'])->name('history.show');
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
@@ -35,6 +36,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('targets/next-sort-order', [PingTargetController::class, 'nextSortOrder'])->name('targets.next-sort-order');
     Route::resource('targets', PingTargetController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::resource('providers', ProviderController::class)->except(['show']);

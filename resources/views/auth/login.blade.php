@@ -8,17 +8,17 @@
         @csrf
 
         <div>
-            <label for="username" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.username') }}</label>
+            <x-form-label for="username" :value="__('ping.username')" />
             <input id="username" type="text" name="username" value="{{ old('username') }}" required autofocus autocomplete="username"
                 class="mono w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none focus:ring-0">
-            @error('username') <p class="mt-1 text-xs text-red-600">[!] {{ $message }}</p> @enderror
+            <x-input-error for="username" />
         </div>
 
         <div>
-            <label for="password" class="mb-1 block text-[10px] font-medium uppercase tracking-widest text-neutral-400">{{ __('ping.password') }}</label>
+            <x-form-label for="password" :value="__('ping.password')" />
             <input id="password" type="password" name="password" required autocomplete="current-password"
                 class="mono w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none focus:ring-0">
-            @error('password') <p class="mt-1 text-xs text-red-600">[!] {{ $message }}</p> @enderror
+            <x-input-error for="password" />
         </div>
 
         <label class="flex items-center gap-2 text-xs text-neutral-600">
@@ -26,9 +26,9 @@
             {{ __('ping.remember') }}
         </label>
 
-        <button type="submit" class="w-full border border-neutral-950 bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-neutral-950">
+        <x-ui-button type="submit" variant="primary" block class="py-2.5">
             {{ __('ping.login') }} →
-        </button>
+        </x-ui-button>
     </form>
 
     <p class="mt-6 border-t border-neutral-100 pt-4 text-center text-xs text-neutral-500">

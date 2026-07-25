@@ -55,6 +55,8 @@ return [
     'field_country_code' => 'Ülke kodu',
     'field_description' => 'Açıklama',
     'field_sort_order' => 'Sıralama',
+    'field_sort_order_hint' => 'Kategori seçilince otomatik olarak o kategorideki son sıranın +1 değeri gelir.',
+
     'field_active' => 'Aktif',
     'save' => 'Kaydet',
     'cancel' => 'İptal',

@@ -1,8 +1,21 @@
 @php
     $isEdit = isset($target);
+    $initialCategory = old('category', $target->category ?? (array_key_first($categories) ?: ''));
+    $initialSort = old('sort_order', $target->sort_order ?? '');
+    $sortOrderConfig = [
+        'url' => route('admin.targets.next-sort-order'),
+        'excludeId' => $isEdit ? $target->id : null,
+        'autoOnLoad' => ! $isEdit && old('sort_order') === null,
+    ];
 @endphp
 
-<form method="POST" action="{{ $isEdit ? route('admin.targets.update', $target) : route('admin.targets.store') }}" class="max-w-2xl space-y-4">
+{{-- Single-quoted x-data: @js() emits double quotes and would break x-data="..." --}}
+<form
+    method="POST"
+    action="{{ $isEdit ? route('admin.targets.update', $target) : route('admin.targets.store') }}"
+    class="max-w-2xl space-y-4"
+    x-data='targetSortOrder({{ \Illuminate\Support\Js::from($sortOrderConfig) }})'
+>
     @csrf
     @if($isEdit) @method('PUT') @endif
 
@@ -23,9 +36,9 @@
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
             <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-400">{{ __('admin.field_category') }} *</label>
-            <select name="category" required data-width="100%">
+            <select name="category" required data-width="100%" x-ref="category" @change="onCategoryChange()">
                 @foreach($categories as $key => $label)
-                    <option value="{{ $key }}" @selected(old('category', $target->category ?? '') == $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($initialCategory == $key)>{{ $label }}</option>
                 @endforeach
             </select>
         </div>
@@ -70,8 +83,17 @@
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
             <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-400">{{ __('admin.field_sort_order') }}</label>
-            <input type="number" name="sort_order" value="{{ old('sort_order', $target->sort_order ?? 0) }}" min="0"
-                class="w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none">
+            <input
+                type="number"
+                name="sort_order"
+                x-ref="sortOrder"
+                value="{{ $initialSort === '' ? '' : $initialSort }}"
+                min="0"
+                @input="manual = true"
+                class="w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none"
+            >
+            <p class="mt-1 text-[11px] text-neutral-400">{{ __('admin.field_sort_order_hint') }}</p>
+            <p x-show="loading" x-cloak class="mono mt-1 text-[11px] text-neutral-400">…</p>
         </div>
         <div class="flex items-center pt-6">
             <label class="flex cursor-pointer items-center gap-2 text-sm">

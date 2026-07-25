@@ -17,6 +17,98 @@ $.now ??= Date.now;
 $.proxy ??= (fn, ctx, ...args) => fn.bind(ctx, ...args);
 
 select2($);
+
+// Register Alpine data components before start(). With Vite ESM, relying only on
+// `alpine:init` can race and leave x-data="cookieNotice" unresolved as a JS expr.
+Alpine.data('siteNav', () => ({
+    open: false,
+    toggle() {
+        this.open = !this.open;
+    },
+    close() {
+        this.open = false;
+    },
+}));
+
+Alpine.data('cookieNotice', () => ({
+    visible: false,
+    storageKey: 'eping_cookie_notice_v1',
+    init() {
+        try {
+            this.visible = window.localStorage.getItem(this.storageKey) !== '1';
+        } catch {
+            this.visible = true;
+        }
+    },
+    accept() {
+        try {
+            window.localStorage.setItem(this.storageKey, '1');
+        } catch {
+            // ignore quota / private mode
+        }
+        this.visible = false;
+    },
+}));
+
+Alpine.data('targetSortOrder', (config = {}) => ({
+    url: config.url || '',
+    excludeId: config.excludeId || null,
+    autoOnLoad: !!config.autoOnLoad,
+    manual: false,
+    loading: false,
+    init() {
+        if (this.autoOnLoad) {
+            this.fetchNext(false);
+        }
+        this.$nextTick(() => {
+            const el = this.$refs.category;
+            if (!el || !window.jQuery) {
+                return;
+            }
+            window.jQuery(el).on('change.select2sort', () => this.onCategoryChange());
+        });
+    },
+    onCategoryChange() {
+        this.manual = false;
+        this.fetchNext(true);
+    },
+    async fetchNext(force) {
+        if (!force && this.manual) {
+            return;
+        }
+        const category = this.$refs.category?.value;
+        if (!category || !this.url) {
+            return;
+        }
+        this.loading = true;
+        try {
+            const params = new URLSearchParams({ category });
+            if (this.excludeId) {
+                params.set('exclude_id', String(this.excludeId));
+            }
+            const res = await fetch(`${this.url}?${params.toString()}`, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) {
+                return;
+            }
+            const data = await res.json();
+            if (typeof data.next === 'number' && this.$refs.sortOrder && (!this.manual || force)) {
+                this.$refs.sortOrder.value = String(data.next);
+                this.manual = false;
+            }
+        } catch {
+            // keep current value
+        } finally {
+            this.loading = false;
+        }
+    },
+}));
+
 window.Alpine = Alpine;
 
 const dataTableLabels = {
@@ -124,37 +216,5 @@ if (document.readyState === 'loading') {
     // Module scripts can execute after DOMContentLoaded already fired.
     bootUi();
 }
-
-document.addEventListener('alpine:init', () => {
-    Alpine.data('siteNav', () => ({
-        open: false,
-        toggle() {
-            this.open = !this.open;
-        },
-        close() {
-            this.open = false;
-        },
-    }));
-
-    Alpine.data('cookieNotice', () => ({
-        visible: false,
-        storageKey: 'eping_cookie_notice_v1',
-        init() {
-            try {
-                this.visible = window.localStorage.getItem(this.storageKey) !== '1';
-            } catch {
-                this.visible = true;
-            }
-        },
-        accept() {
-            try {
-                window.localStorage.setItem(this.storageKey, '1');
-            } catch {
-                // ignore quota / private mode
-            }
-            this.visible = false;
-        },
-    }));
-});
 
 Alpine.start();
