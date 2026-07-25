@@ -110,7 +110,6 @@ class IspStatsService
                     'samples_wifi' => (int) $row->samples_wifi,
                     'samples_ethernet' => (int) $row->samples_ethernet,
                 ];
-                $out->summary = $this->summarizeRow($out);
 
                 return $out;
             });
@@ -157,30 +156,5 @@ class IspStatsService
             ->orderBy('client_country_code')
             ->pluck('client_country_code')
             ->all();
-    }
-
-    private function summarizeRow(object $row): string
-    {
-        $isp = (string) $row->isp;
-        $provider = (string) $row->provider;
-        $ip = (string) $row->resolved_ip;
-        $avg = $row->avg_latency_ms;
-        $country = $row->country_code ? ' ('.$row->country_code.')' : '';
-
-        if ($ip !== '—') {
-            return __('ping.stats_summary_ip', [
-                'isp' => $isp.$country,
-                'provider' => $provider,
-                'ip' => $ip,
-                'ms' => $avg,
-            ]);
-        }
-
-        return __('ping.stats_summary_host', [
-            'isp' => $isp.$country,
-            'provider' => $provider,
-            'host' => $row->host,
-            'ms' => $avg,
-        ]);
     }
 }

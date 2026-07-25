@@ -59,4 +59,15 @@ class TargetSortOrderTest extends TestCase
         $this->getJson(route('admin.targets.next-sort-order', ['category' => 'aws']))
             ->assertUnauthorized();
     }
+
+    public function test_create_form_exposes_sort_order_endpoint(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.targets.create'))
+            ->assertOk()
+            ->assertSee('data-sort-url="'.route('admin.targets.next-sort-order').'"', false)
+            ->assertSee('data-sort-auto-on-load="1"', false);
+    }
 }

@@ -9,12 +9,14 @@
     ];
 @endphp
 
-{{-- Single-quoted x-data: @js() emits double quotes and would break x-data="..." --}}
 <form
     method="POST"
     action="{{ $isEdit ? route('admin.targets.update', $target) : route('admin.targets.store') }}"
     class="max-w-2xl space-y-4"
-    x-data='targetSortOrder({{ \Illuminate\Support\Js::from($sortOrderConfig) }})'
+    x-data="targetSortOrder"
+    data-sort-url="{{ route('admin.targets.next-sort-order') }}"
+    @if($isEdit) data-sort-exclude-id="{{ $target->id }}" @endif
+    @if($sortOrderConfig['autoOnLoad']) data-sort-auto-on-load="1" @endif
 >
     @csrf
     @if($isEdit) @method('PUT') @endif
@@ -36,7 +38,7 @@
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
             <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-400">{{ __('admin.field_category') }} *</label>
-            <select name="category" required data-width="100%" x-ref="category" @change="onCategoryChange()">
+            <select name="category" required data-width="100%" x-ref="category">
                 @foreach($categories as $key => $label)
                     <option value="{{ $key }}" @selected($initialCategory == $key)>{{ $label }}</option>
                 @endforeach
@@ -55,7 +57,7 @@
             <select name="provider" data-width="100%" data-placeholder="{{ __('admin.field_provider_none') }}">
                 <option value="">{{ __('admin.field_provider_none') }}</option>
                 @foreach($providerList as $providerName)
-                    <option value="{{ $providerName }}" @selected($providerValue === $providerValue)>{{ $providerName }}</option>
+                    <option value="{{ $providerName }}" @selected($providerValue === $providerName)>{{ $providerName }}</option>
                 @endforeach
             </select>
             <p class="mt-1 text-[11px] text-neutral-400">{{ __('admin.field_provider_hint') }}</p>

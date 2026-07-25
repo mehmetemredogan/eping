@@ -46,14 +46,6 @@
             </div>
         </form>
 
-        @if($rows->isNotEmpty())
-            <div class="mb-6 space-y-2">
-                @foreach($rows->take(5) as $highlight)
-                    <p class="border-l-2 border-neutral-950 pl-3 text-sm text-neutral-700">{{ $highlight->summary }}</p>
-                @endforeach
-            </div>
-        @endif
-
         <div class="overflow-x-auto border border-neutral-950 bg-white">
             <table class="js-datatable w-full text-left text-sm" data-dt-per-page="25" data-dt-nosort="11">
                 <thead class="border-b border-neutral-950 text-[10px] uppercase tracking-widest text-neutral-400">
@@ -74,7 +66,7 @@
                 </thead>
                 <tbody>
                     @forelse($rows as $row)
-                        <tr class="border-b border-neutral-100 hover:bg-neutral-50" title="{{ $row->summary }}">
+                        <tr class="border-b border-neutral-100 hover:bg-neutral-50">
                             <td class="px-3 py-3">
                                 <div class="font-medium">{{ $row->isp }}</div>
                                 @if($row->asn)

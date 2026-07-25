@@ -68,7 +68,7 @@ class StatsTest extends TestCase
         $response = $this->get(route('stats.index', ['min_samples' => 3]));
 
         $response->assertOk();
-        $response->assertSee('Turk Telekom (TR) kullanıcıları', false);
+        $response->assertSee('Turk Telekom', false);
         $response->assertSee('Cloudflare', false);
         $response->assertSee('1.1.1.1', false);
         // Below the k-anonymity threshold: absent from the table (may still appear in filter lists).
@@ -77,7 +77,7 @@ class StatsTest extends TestCase
         $response->assertDontSee('203.0.113.', false);
     }
 
-    public function test_stats_summary_sentence_is_rendered(): void
+    public function test_stats_row_data_is_rendered_in_table(): void
     {
         $this->seedSuccessfulResults('Turk Telekom', 'Cloudflare', '1.1.1.1', '1.1.1.1', 3, 40);
 
@@ -85,7 +85,8 @@ class StatsTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Turk Telekom', false);
-        $response->assertSee('40', false);
+        $response->assertSee('41 ms', false);
+        $response->assertDontSee('kullanıcıları', false);
     }
 
     public function test_stats_never_leaks_client_ip_or_username(): void

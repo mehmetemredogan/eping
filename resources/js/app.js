@@ -3,7 +3,6 @@ import $ from 'jquery';
 import select2 from 'select2';
 import { DataTable } from 'simple-datatables';
 
-import 'select2/dist/css/select2.min.css';
 import 'simple-datatables/dist/style.css';
 
 window.$ = window.jQuery = $;
@@ -50,33 +49,38 @@ Alpine.data('cookieNotice', () => ({
     },
 }));
 
-Alpine.data('targetSortOrder', (config = {}) => ({
-    url: config.url || '',
-    excludeId: config.excludeId || null,
-    autoOnLoad: !!config.autoOnLoad,
+Alpine.data('targetSortOrder', () => ({
+    url: '',
+    excludeId: null,
+    autoOnLoad: false,
     manual: false,
     loading: false,
     init() {
-        if (this.autoOnLoad) {
-            this.fetchNext(false);
-        }
-        this.$nextTick(() => {
-            const el = this.$refs.category;
-            if (!el || !window.jQuery) {
-                return;
-            }
-            window.jQuery(el).on('change.select2sort', () => this.onCategoryChange());
-        });
+        this.readConfig();
+    },
+    readConfig() {
+        const el = this.$el;
+        this.url = el.dataset.sortUrl || '';
+        this.excludeId = el.dataset.sortExcludeId ? Number(el.dataset.sortExcludeId) : null;
+        this.autoOnLoad = el.dataset.sortAutoOnLoad === '1';
+    },
+    categoryValue() {
+        return this.$refs.category?.value
+            ?? this.$el.querySelector('select[name="category"]')?.value
+            ?? '';
     },
     onCategoryChange() {
         this.manual = false;
         this.fetchNext(true);
     },
     async fetchNext(force) {
+        if (!this.url) {
+            this.readConfig();
+        }
         if (!force && this.manual) {
             return;
         }
-        const category = this.$refs.category?.value;
+        const category = this.categoryValue();
         if (!category || !this.url) {
             return;
         }
@@ -97,8 +101,9 @@ Alpine.data('targetSortOrder', (config = {}) => ({
                 return;
             }
             const data = await res.json();
-            if (typeof data.next === 'number' && this.$refs.sortOrder && (!this.manual || force)) {
-                this.$refs.sortOrder.value = String(data.next);
+            const sortInput = this.$refs.sortOrder ?? this.$el.querySelector('[name="sort_order"]');
+            if (typeof data.next === 'number' && sortInput && (!this.manual || force)) {
+                sortInput.value = String(data.next);
                 this.manual = false;
             }
         } catch {
@@ -108,6 +113,16 @@ Alpine.data('targetSortOrder', (config = {}) => ({
         }
     },
 }));
+
+function getAlpineData(el) {
+    if (el?._x_dataStack?.length) {
+        return el._x_dataStack[0];
+    }
+    if (typeof Alpine.$data === 'function') {
+        return Alpine.$data(el);
+    }
+    return null;
+}
 
 window.Alpine = Alpine;
 
@@ -176,16 +191,27 @@ function initSelect2(root = document) {
 
             const minResults = $el.data('minimum-results-for-search');
             const placeholder = $el.data('placeholder');
+            const allowClearAttr = $el.data('allowClear');
+            const hasEmptyOption = $el.find('option[value=""]').length > 0;
 
             $el.select2({
                 width: $el.data('width') || '100%',
                 minimumResultsForSearch:
                     minResults === 'Infinity' ? Infinity : (minResults ?? 0),
                 placeholder: placeholder || undefined,
-                // Select2 requires a placeholder for allowClear.
-                allowClear: !!placeholder && !!$el.find('option[value=""]').length && !$el.prop('required'),
+                allowClear:
+                    allowClearAttr === true || allowClearAttr === 'true'
+                        ? !!placeholder && hasEmptyOption
+                        : !!placeholder && hasEmptyOption && !$el.prop('required'),
                 dropdownParent: $(document.body),
             });
+
+            const sortForm = this.closest('form[data-sort-url]');
+            if (sortForm && this.name === 'category') {
+                $el.off('.targetSortOrder').on('change.targetSortOrder select2:select.targetSortOrder', () => {
+                    getAlpineData(sortForm)?.onCategoryChange?.();
+                });
+            }
         });
 
     $(root)
@@ -205,16 +231,35 @@ function initSelect2(root = document) {
         });
 }
 
+function bootstrapTargetSortOrderForms(root = document) {
+    root.querySelectorAll('form[data-sort-url]').forEach((form) => {
+        const component = getAlpineData(form);
+        if (!component?.fetchNext) {
+            return;
+        }
+
+        component.readConfig();
+
+        if (component.autoOnLoad) {
+            queueMicrotask(() => component.fetchNext(false));
+        }
+    });
+}
+
 function bootUi() {
     initSelect2();
     initDataTables();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootUi);
-} else {
-    // Module scripts can execute after DOMContentLoaded already fired.
+function bootApp() {
     bootUi();
+    Alpine.start();
+    bootstrapTargetSortOrderForms();
 }
 
-Alpine.start();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+    // Module scripts can execute after DOMContentLoaded already fired.
+    bootApp();
+}
