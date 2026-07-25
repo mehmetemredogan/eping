@@ -1,7 +1,10 @@
 <x-admin-layout :header="__('admin.providers_title')">
-    <p class="mb-6 text-xs text-neutral-500">
-        {{ __('admin.providers_hint') }}
-    </p>
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-neutral-500">{{ __('admin.providers_hint') }}</p>
+        <a href="{{ route('admin.providers.create') }}" class="border border-neutral-950 bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white hover:text-neutral-950">
+            {{ __('admin.new_provider') }}
+        </a>
+    </div>
 
     <div class="overflow-x-auto border border-neutral-950 bg-white">
         <table class="js-datatable w-full text-left text-sm" data-dt-per-page="25" data-dt-nosort="3">
@@ -10,7 +13,7 @@
                     <th class="px-4 py-3 font-medium">{{ __('admin.col_provider') }}</th>
                     <th class="px-4 py-3 font-medium">{{ __('admin.col_target_count') }}</th>
                     <th class="px-4 py-3 font-medium">{{ __('admin.col_description') }}</th>
-                    <th class="px-4 py-3 text-right font-medium"></th>
+                    <th class="px-4 py-3 text-right font-medium">{{ __('admin.col_action') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -27,6 +30,13 @@
                         </td>
                         <td class="px-4 py-3 text-right text-xs">
                             <a href="{{ route('admin.providers.edit', $provider) }}" class="text-neutral-950 underline-offset-2 hover:underline">{{ __('admin.edit') }}</a>
+                            @if(($targetCounts[$provider->name] ?? 0) === 0)
+                                <form method="POST" action="{{ route('admin.providers.destroy', $provider) }}" class="ml-3 inline" onsubmit="return confirm(@js(__('admin.delete_confirm')));">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-700 underline-offset-2 hover:underline">{{ __('admin.delete') }}</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @empty

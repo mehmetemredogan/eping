@@ -25,6 +25,10 @@
                    class="block px-3 py-2.5 {{ request()->routeIs('admin.targets.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600 hover:bg-neutral-100' }}">
                     {{ __('admin.nav_targets') }}
                 </a>
+                <a href="{{ route('admin.categories.index') }}"
+                   class="block px-3 py-2.5 {{ request()->routeIs('admin.categories.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600 hover:bg-neutral-100' }}">
+                    {{ __('admin.nav_categories') }}
+                </a>
                 <a href="{{ route('admin.providers.index') }}"
                    class="block px-3 py-2.5 {{ request()->routeIs('admin.providers.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600 hover:bg-neutral-100' }}">
                     {{ __('admin.nav_providers') }}
@@ -73,6 +77,7 @@
                 <nav class="flex flex-col gap-1 p-3 text-xs uppercase tracking-widest">
                     <a href="{{ route('admin.dashboard') }}" class="px-3 py-2.5 {{ request()->routeIs('admin.dashboard') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}">{{ __('admin.nav_dashboard') }}</a>
                     <a href="{{ route('admin.targets.index') }}" class="px-3 py-2.5 {{ request()->routeIs('admin.targets.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}">{{ __('admin.nav_targets') }}</a>
+                    <a href="{{ route('admin.categories.index') }}" class="px-3 py-2.5 {{ request()->routeIs('admin.categories.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}">{{ __('admin.nav_categories') }}</a>
                     <a href="{{ route('admin.providers.index') }}" class="px-3 py-2.5 {{ request()->routeIs('admin.providers.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}">{{ __('admin.nav_providers') }}</a>
                     <a href="{{ route('admin.results.index') }}" class="px-3 py-2.5 {{ request()->routeIs('admin.results.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}">{{ __('admin.nav_results') }}</a>
                     <a href="{{ route('history.index') }}" class="px-3 py-2.5 text-neutral-500">← {{ __('admin.nav_back_to_panel') }}</a>
@@ -82,6 +87,11 @@
             @if(session('success'))
                 <div class="mx-4 mt-4 border border-neutral-950 bg-white px-4 py-3 text-sm sm:mx-6">
                     <span class="mr-2 text-green-600">[OK]</span>{{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="mx-4 mt-4 border border-red-700 bg-white px-4 py-3 text-sm sm:mx-6">
+                    <span class="mr-2 text-red-700">[!]</span>{{ session('error') }}
                 </div>
             @endif
 

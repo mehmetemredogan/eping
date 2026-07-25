@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PingResult;
 use App\Models\PingTarget;
 use App\Services\DnsLookupService;
+use App\Services\FreeIpApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,7 +19,8 @@ class ResultController extends Controller
     public function store(
         Request $request,
         PingTarget $target,
-        DnsLookupService $dnsLookupService
+        DnsLookupService $dnsLookupService,
+        FreeIpApiService $freeIpApi
     ): JsonResponse {
         abort_unless($target->is_active, 404);
 
@@ -100,6 +102,14 @@ class ResultController extends Controller
             }
         }
 
+        $clientIp = $request->ip();
+        $clientGeo = null;
+        try {
+            $clientGeo = $freeIpApi->lookup($clientIp);
+        } catch (\Throwable) {
+            $clientGeo = null;
+        }
+
         $result = PingResult::create([
             'ping_target_id' => $target->id,
             'session_id' => $validated['session_id'] ?? (string) Str::uuid(),
@@ -116,8 +126,13 @@ class ResultController extends Controller
             'dns_records' => $dns['dns_records'] ?? [],
             'edns_data' => $dns['edns_data'] ?? null,
             'ping_raw_output' => implode(' | ', $raw),
-            'client_ip' => $request->ip(),
-            'client_geo' => null,
+            'client_ip' => $clientIp,
+            'client_geo' => $clientGeo,
+            'client_asn' => $clientGeo['asn'] ?? null,
+            'client_isp' => $clientGeo['asnOrganization'] ?? null,
+            'client_country_code' => isset($clientGeo['countryCode'])
+                ? strtoupper((string) $clientGeo['countryCode'])
+                : null,
             'client_dns' => null,
             'network_analysis' => $analysis,
             'user_id' => $request->user()->id,

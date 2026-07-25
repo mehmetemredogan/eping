@@ -1,3 +1,3 @@
 <x-admin-layout :header="__('admin.edit_target_title')">
-    @include('admin.targets._form', ['target' => $target, 'categories' => $categories])
+    @include('admin.targets._form', ['target' => $target, 'categories' => $categories, 'providers' => $providers])
 </x-admin-layout>

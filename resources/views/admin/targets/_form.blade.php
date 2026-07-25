@@ -31,8 +31,21 @@
         </div>
         <div>
             <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-neutral-400">{{ __('admin.field_provider') }}</label>
-            <input type="text" name="provider" value="{{ old('provider', $target->provider ?? '') }}"
-                class="w-full border border-neutral-300 bg-white px-3 py-2 text-sm focus:border-neutral-950 focus:outline-none">
+            @php
+                $providerValue = old('provider', $target->provider ?? '');
+                $providerList = $providers ?? [];
+                if (filled($providerValue) && ! in_array($providerValue, $providerList, true)) {
+                    $providerList[] = $providerValue;
+                    sort($providerList, SORT_NATURAL | SORT_FLAG_CASE);
+                }
+            @endphp
+            <select name="provider" data-width="100%" data-placeholder="{{ __('admin.field_provider_none') }}">
+                <option value="">{{ __('admin.field_provider_none') }}</option>
+                @foreach($providerList as $providerName)
+                    <option value="{{ $providerName }}" @selected($providerValue === $providerValue)>{{ $providerName }}</option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-[11px] text-neutral-400">{{ __('admin.field_provider_hint') }}</p>
         </div>
     </div>
 

@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PingTarget;
+use App\Models\Provider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PingTargetController extends Controller
@@ -36,25 +38,17 @@ class PingTargetController extends Controller
     {
         return view('admin.targets.create', [
             'categories' => PingTarget::categories(),
+            'providers' => $this->providerOptions(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'host' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9.\-:]+$/'],
-            'category' => ['required', 'string', 'in:'.implode(',', array_keys(PingTarget::categories()))],
-            'provider' => ['nullable', 'string', 'max:255'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'country_code' => ['nullable', 'string', 'size:2'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $validated = $this->validated($request);
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['sort_order'] ??= 0;
+        $this->ensureProvider($validated['provider'] ?? null);
 
         PingTarget::create($validated);
 
@@ -66,24 +60,16 @@ class PingTargetController extends Controller
         return view('admin.targets.edit', [
             'target' => $target,
             'categories' => PingTarget::categories(),
+            'providers' => $this->providerOptions(),
         ]);
     }
 
     public function update(Request $request, PingTarget $target): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'host' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9.\-:]+$/'],
-            'category' => ['required', 'string', 'in:'.implode(',', array_keys(PingTarget::categories()))],
-            'provider' => ['nullable', 'string', 'max:255'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'country_code' => ['nullable', 'string', 'size:2'],
-            'description' => ['nullable', 'string'],
-            'is_active' => ['boolean'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $validated = $this->validated($request);
 
         $validated['is_active'] = $request->boolean('is_active');
+        $this->ensureProvider($validated['provider'] ?? null);
 
         $target->update($validated);
 
@@ -95,5 +81,53 @@ class PingTargetController extends Controller
         $target->delete();
 
         return redirect()->route('admin.targets.index')->with('success', __('admin.target_deleted'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validated(Request $request): array
+    {
+        $categorySlugs = array_keys(PingTarget::categories());
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'host' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9.\-:]+$/'],
+            'category' => ['required', 'string', Rule::in($categorySlugs)],
+            'provider' => ['nullable', 'string', 'max:255'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'country_code' => ['nullable', 'string', 'size:2'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        if (array_key_exists('provider', $validated)) {
+            $validated['provider'] = filled($validated['provider'])
+                ? trim((string) $validated['provider'])
+                : null;
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function providerOptions(): array
+    {
+        return Provider::query()
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+    }
+
+    private function ensureProvider(?string $name): void
+    {
+        if (! filled($name)) {
+            return;
+        }
+
+        Provider::query()->firstOrCreate(['name' => $name]);
     }
 }

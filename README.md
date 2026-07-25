@@ -21,6 +21,19 @@ ePing, farklı bulut sağlayıcıları, oyun sunucuları ve CDN'lere olan ağ ge
   ve traceroute analizini bir arada gösteren, asıl test aracı olan TUI (terminal
   kullanıcı arayüzü).
 
+**Bu projeyi neden yazdık?**
+
+Biz yazılım geliştiriyor ve bu yazılımların yönetimini yapıyoruz.
+Hangi platforma hangi rotalardan ve ne kadar gecikme ile bağlandığımızı görmek bizim
+verimli altyapılar oluşturmamız için kritik öneme sahip. Ayrıca günlük hayatımızda
+oynadığımız çevrimiçi oyunlar ve kullandığımız platformlara da en iyi şekilde erişim
+sağlamak istiyoruz.
+
+ePing yazılımı aracılığı ile internete en iyi rotalarla en hızlı şekilde ulaşabildiğimiz
+internet servis sağlayıcıları tespit edip aboneliklerimizi ona göre değiştirmek istiyoruz.
+
+ePing ile toplanan veriler anonimleştirilerek istatistikler bölümünde yayınlanır.
+
 ## İçindekiler
 
 - [Özellikler](#özellikler)
@@ -39,36 +52,21 @@ ePing, farklı bulut sağlayıcıları, oyun sunucuları ve CDN'lere olan ağ ge
 
 ## Özellikler
 
-- 🌍 **Global hedef listesi** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
+- **Global hedef listesi** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
   Hetzner, Vultr, OVH, oyun sunucuları ve daha fazlası, kategoriye ve sağlayıcıya
   göre gruplanmış (terminal istemcisi üzerinden test edilir).
-- 🖥️ **Terminal istemcisi** — HTTP TTFB (DNS/TCP/TLS kırılımı, p50/p95) ve
+- **Terminal istemcisi** — HTTP TTFB (DNS/TCP/TLS kırılımı, p50/p95) ve
   OS `tracert`/`traceroute` tabanlı hop analizi; tek ölçüm aracı budur.
-- 👤 **Üye paneli** — Terminal istemcisiyle yaptığınız testlerin geçmişini
+- **Üye paneli** — Terminal istemcisiyle yaptığınız testlerin geçmişini
   tarihe göre listeler.
-- 📈 **Geçmişle karşılaştırma** — Giriş yapan kullanıcılar için geçmiş ölçümlere
+- **Geçmişle karşılaştırma** — Giriş yapan kullanıcılar için geçmiş ölçümlere
   göre iyileşme/kötüleşme trendi (API üzerinden, `/api/v1/results/trend`).
-- 🛠️ **Admin paneli** — Hedef, sağlayıcı ve test logu yönetimi; dashboard istatistikleri.
-- 🔐 **Basit kimlik doğrulama** — Yalnızca kullanıcı adı + parola (e-posta/isim istenmez),
+- **Admin paneli** — Hedef, sağlayıcı ve test logu yönetimi; dashboard istatistikleri.
+- **Basit kimlik doğrulama** — Yalnızca kullanıcı adı + parola (e-posta/isim istenmez),
   API tarafında Sanctum token ile.
-- 🌍 **Çok dilli arayüz** — Türkçe ve İngilizce arasında anlık geçiş (bkz. [Dil desteği](#dil-desteği)).
+- **Çok dilli arayüz** — Türkçe ve İngilizce arasında anlık geçiş (bkz. [Dil desteği](#dil-desteği)).
 
 ## Mimari
-
-```
-┌─────────────────────┐        HTTPS / JSON        ┌──────────────────────┐
-│   Web arayüzü        │ ◄─────────────────────────► │  Laravel API (v1)    │
-│  (Blade + Alpine.js)│                              │  routes/api.php      │
-│  auth + üye paneli   │                              └──────────┬───────────┘
-│  + admin paneli      │                                         │
-└─────────────────────┘                              ┌───────────┴───────────┐
-                                                       │
-┌─────────────────────┐        HTTPS / JSON           │
-│  Go terminal istemcisi│◄──────────────────────────────┘
-│  (ui/) — asıl ölçüm  │
-│       aracı          │
-└─────────────────────┘
-```
 
 Backend, hedef listesini ve test sonuçlarını PostgreSQL (veya SQLite, test ortamı)
 üzerinde saklar. Ping ölçümü yalnızca Go terminal istemcisi tarafından yapılır ve

@@ -36,20 +36,14 @@ class PingTarget extends Model
         return $this->hasOne(PingResult::class)->latestOfMany('tested_at');
     }
 
+    /**
+     * Localized category options keyed by slug (from the categories table).
+     *
+     * @return array<string, string>
+     */
     public static function categories(): array
     {
-        $keys = [
-            'game_server', 'aws', 'azure', 'gcp', 'cloudflare', 'digitalocean',
-            'oracle', 'alibaba', 'hetzner', 'vultr', 'linode', 'ovh', 'scaleway',
-            'gaming_platform', 'cdn', 'other',
-        ];
-
-        $categories = [];
-        foreach ($keys as $key) {
-            $categories[$key] = __('ping.categories.'.$key);
-        }
-
-        return $categories;
+        return Category::options();
     }
 
     public function getCategoryLabelAttribute(): string

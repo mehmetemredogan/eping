@@ -21,6 +21,15 @@ time to various cloud providers, game servers, and CDNs. It consists of two part
   talks to the API and is the actual measurement tool, combining HTTP latency
   measurement with traceroute analysis.
 
+  **Why did we write this project?**
+
+We develop and manage software.
+Seeing which platforms we connect to via which routes and with what latency is critical for us to create efficient infrastructures. We also want to ensure the best possible access to the online games we play and the platforms we use in our daily lives.
+
+Through ePing software, we want to identify the internet service providers that allow us to access the internet fastest via the best routes and change our subscriptions accordingly.
+
+Data collected by ePing is anonymized and published in the statistics section.
+
 ## Table of contents
 
 - [Features](#features)
@@ -39,37 +48,22 @@ time to various cloud providers, game servers, and CDNs. It consists of two part
 
 ## Features
 
-- 🌍 **Global target list** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
+- **Global target list** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
   Hetzner, Vultr, OVH, game servers and more, grouped by category and provider
   (tested via the terminal client).
-- 🖥️ **Terminal client** — HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
+- **Terminal client** — HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
   OS `tracert`/`traceroute`-based hop analysis; the sole measurement tool.
-- 👤 **Member panel** — Lists the history of tests you ran with the terminal
+- **Member panel** — Lists the history of tests you ran with the terminal
   client, grouped by date.
-- 📈 **Historical comparison** — For logged-in users, shows an improving/degrading
+- **Historical comparison** — For logged-in users, shows an improving/degrading
   trend compared to their measurement history (via the API, `/api/v1/results/trend`).
-- 🛠️ **Admin panel** — Manage targets, providers, and test logs; dashboard statistics.
-- 🔐 **Minimal authentication** — Username + password only (no email/real name
+- **Admin panel** — Manage targets, providers, and test logs; dashboard statistics.
+- **Minimal authentication** — Username + password only (no email/real name
   required), with Sanctum tokens on the API side.
-- 🌍 **Multilingual UI** — Instant switching between Turkish and English (see
+- **Multilingual UI** — Instant switching between Turkish and English (see
   [Language support](#language-support)).
 
 ## Architecture
-
-```
-┌─────────────────────┐        HTTPS / JSON        ┌──────────────────────┐
-│    Web frontend      │ ◄─────────────────────────► │  Laravel API (v1)    │
-│  (Blade + Alpine.js)│                              │  routes/api.php      │
-│  auth + member panel │                              └──────────┬───────────┘
-│  + admin panel       │                                         │
-└─────────────────────┘                              ┌───────────┴───────────┐
-                                                       │
-┌─────────────────────┐        HTTPS / JSON           │
-│   Go terminal client │◄──────────────────────────────┘
-│  (ui/) — the actual  │
-│   measurement tool   │
-└─────────────────────┘
-```
 
 The backend stores the target list and test results in PostgreSQL (or SQLite for
 tests). Ping measurement is only performed by the Go terminal client and submitted
