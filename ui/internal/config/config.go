@@ -8,7 +8,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultAPIURL = "https://ping.mehmetemredogan.tr"
+// DefaultAPIURL is the production API baked into the binary. Used when there
+// is no config.yaml, when api_url is empty, or when the UI field is cleared.
+// Override at runtime via the TUI API field (Enter saves to config.yaml), by
+// editing config.yaml, or with EPING_API_URL / PINGLAB_API_URL.
+const DefaultAPIURL = "https://ping.mehmetemredogan.tr"
 
 type Config struct {
 	APIURL         string `yaml:"api_url"`
@@ -22,7 +26,7 @@ type Config struct {
 
 func Default() Config {
 	return Config{
-		APIURL:         envOr("EPING_API_URL", envOr("PINGLAB_API_URL", defaultAPIURL)),
+		APIURL:         envOr("EPING_API_URL", envOr("PINGLAB_API_URL", DefaultAPIURL)),
 		Samples:        4,
 		Concurrency:    6,
 		TraceOnMeasure: true,
@@ -43,7 +47,7 @@ func Load() Config {
 		return Default()
 	}
 	if strings.TrimSpace(cfg.APIURL) == "" {
-		cfg.APIURL = Default().APIURL
+		cfg.APIURL = DefaultAPIURL
 	}
 	if v := os.Getenv("EPING_API_URL"); v != "" {
 		cfg.APIURL = v

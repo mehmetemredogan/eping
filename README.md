@@ -182,12 +182,12 @@ GitHub Actions üzerinde Go terminal istemcisi için iki iş akışı bulunur:
 Yeni bir sürüm yayınlamak için `ui/VERSION` dosyasını güncelleyip tag'i push edin:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 veya tag oluşturmadan **Actions → UI Release → Run workflow** ile manuel tetikleyin
-(sürüm alanı boş bırakılırsa `ui/VERSION` içindeki güncel değer — şu an `0.1.1` —
+(sürüm alanı boş bırakılırsa `ui/VERSION` içindeki güncel değer — şu an `0.1.2` —
 kullanılır).
 
 Yerel olarak tüm platformlar için derlemek isterseniz `ui/Makefile`,

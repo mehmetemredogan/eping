@@ -21,6 +21,22 @@ func setConfigHome(t *testing.T, dir string) {
 	}
 }
 
+func TestDefaultAPIURLIsProduction(t *testing.T) {
+	const want = "https://ping.mehmetemredogan.tr"
+	if config.DefaultAPIURL != want {
+		t.Fatalf("DefaultAPIURL = %q, want %q", config.DefaultAPIURL, want)
+	}
+
+	t.Setenv("EPING_API_URL", "")
+	t.Setenv("PINGLAB_API_URL", "")
+	setConfigHome(t, t.TempDir()) // no config.yaml
+
+	cfg := config.Load()
+	if cfg.APIURL != want {
+		t.Fatalf("Load() with no config = %q, want baked-in default %q", cfg.APIURL, want)
+	}
+}
+
 func TestSaveLoadRoundTrip(t *testing.T) {
 	setConfigHome(t, t.TempDir())
 
@@ -52,15 +68,19 @@ func TestLoadCorruptFileFallsBackToDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	t.Setenv("EPING_API_URL", "")
+	t.Setenv("PINGLAB_API_URL", "")
 	loaded := config.Load()
-	if loaded.APIURL == "" {
-		t.Fatal("expected default APIURL to survive a corrupt config file")
+	if loaded.APIURL != config.DefaultAPIURL {
+		t.Fatalf("corrupt config fell back to %q, want %q", loaded.APIURL, config.DefaultAPIURL)
 	}
 }
 
 func TestLoadEmptyAPIURLRestoresDefault(t *testing.T) {
 	dir := t.TempDir()
 	setConfigHome(t, dir)
+	t.Setenv("EPING_API_URL", "")
+	t.Setenv("PINGLAB_API_URL", "")
 
 	path := filepath.Join(dir, "eping", "config.yaml")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -71,7 +91,7 @@ func TestLoadEmptyAPIURLRestoresDefault(t *testing.T) {
 	}
 
 	loaded := config.Load()
-	if loaded.APIURL == "" {
-		t.Fatal("expected empty api_url in file to be replaced by the default")
+	if loaded.APIURL != config.DefaultAPIURL {
+		t.Fatalf("empty api_url restored to %q, want %q", loaded.APIURL, config.DefaultAPIURL)
 	}
 }

@@ -155,7 +155,7 @@ type Model struct {
 
 func New(cfg config.Config) Model {
 	apiIn := textinput.New()
-	apiIn.Placeholder = "https://ping.mehmetemredogan.tr"
+	apiIn.Placeholder = config.DefaultAPIURL
 	apiIn.SetValue(cfg.APIURL)
 	apiIn.CharLimit = 200
 	apiIn.Width = 28
@@ -417,7 +417,12 @@ func (m Model) updateInputs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "enter" {
 		switch m.focus {
 		case focusAPI:
-			m.cfg.APIURL = strings.TrimSpace(m.apiInput.Value())
+			url := strings.TrimSpace(m.apiInput.Value())
+			if url == "" {
+				url = config.DefaultAPIURL
+				m.apiInput.SetValue(url)
+			}
+			m.cfg.APIURL = url
 			m.client = api.New(m.cfg.APIURL, m.cfg.Token)
 			_ = m.cfg.Save()
 			m.status = "API kaydedildi: " + m.cfg.APIURL

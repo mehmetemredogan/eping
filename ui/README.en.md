@@ -14,7 +14,11 @@ go mod tidy
 go run .
 ```
 
-Configuration: `%AppData%/eping/config.yaml` or the `EPING_API_URL` environment variable.
+The default API URL is baked into the binary: `https://ping.mehmetemredogan.tr`.
+With no config file, that address is used. Change it at runtime in the TUI API
+field and press Enter — it takes effect immediately and is written to
+`config.yaml`. For a permanent edit: `%AppData%/eping/config.yaml` (Windows) /
+`~/.config/eping/config.yaml` (Linux/macOS), or `EPING_API_URL`.
 
 ## Keyboard shortcuts
 

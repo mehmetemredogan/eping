@@ -14,7 +14,11 @@ go mod tidy
 go run .
 ```
 
-Yapılandırma: `%AppData%/eping/config.yaml` veya `EPING_API_URL`.
+Varsayılan API adresi kodda gömülüdür: `https://ping.mehmetemredogan.tr`.
+Config yoksa bu adres kullanılır. Çalışırken TUI’daki API alanından değiştirip
+Enter’a basınca hem anında geçerli olur hem de `config.yaml`’a yazılır.
+Kalıcı düzenleme: `%AppData%/eping/config.yaml` (Windows) /
+`~/.config/eping/config.yaml` (Linux/macOS), veya `EPING_API_URL`.
 
 ## Kısayollar
 
