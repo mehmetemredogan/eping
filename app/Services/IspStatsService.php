@@ -71,7 +71,11 @@ class IspStatsService
                 AVG(ping_results.avg_latency_ms) as avg_latency_ms,
                 MIN(ping_results.avg_latency_ms) as min_latency_ms,
                 MAX(ping_results.avg_latency_ms) as max_latency_ms,
-                COUNT(*) as samples
+                COUNT(*) as samples,
+                AVG(CASE WHEN ping_results.connection_type = \'wifi\' THEN ping_results.avg_latency_ms END) as avg_wifi_ms,
+                AVG(CASE WHEN ping_results.connection_type = \'ethernet\' THEN ping_results.avg_latency_ms END) as avg_ethernet_ms,
+                SUM(CASE WHEN ping_results.connection_type = \'wifi\' THEN 1 ELSE 0 END) as samples_wifi,
+                SUM(CASE WHEN ping_results.connection_type = \'ethernet\' THEN 1 ELSE 0 END) as samples_ethernet
             ')
             ->groupBy([
                 'ping_results.client_isp',
@@ -88,15 +92,27 @@ class IspStatsService
             ->limit(500)
             ->get()
             ->map(function ($row) {
-                $row->avg_latency_ms = round((float) $row->avg_latency_ms, 0);
-                $row->min_latency_ms = round((float) $row->min_latency_ms, 0);
-                $row->max_latency_ms = round((float) $row->max_latency_ms, 0);
-                $row->samples = (int) $row->samples;
-                $row->provider = $row->provider ?: __('ping.categories.other');
-                $row->resolved_ip = $row->resolved_ip ?: '—';
-                $row->summary = $this->summarizeRow($row);
+                // Plain object: PingResult casts (decimal:2) would reformat aggregates.
+                $out = (object) [
+                    'isp' => $row->isp,
+                    'asn' => $row->asn,
+                    'country_code' => $row->country_code,
+                    'provider' => $row->provider ?: __('ping.categories.other'),
+                    'target_name' => $row->target_name,
+                    'host' => $row->host,
+                    'resolved_ip' => $row->resolved_ip ?: '—',
+                    'avg_latency_ms' => (int) round((float) $row->avg_latency_ms, 0),
+                    'min_latency_ms' => (int) round((float) $row->min_latency_ms, 0),
+                    'max_latency_ms' => (int) round((float) $row->max_latency_ms, 0),
+                    'samples' => (int) $row->samples,
+                    'avg_wifi_ms' => $row->avg_wifi_ms !== null ? (int) round((float) $row->avg_wifi_ms, 0) : null,
+                    'avg_ethernet_ms' => $row->avg_ethernet_ms !== null ? (int) round((float) $row->avg_ethernet_ms, 0) : null,
+                    'samples_wifi' => (int) $row->samples_wifi,
+                    'samples_ethernet' => (int) $row->samples_ethernet,
+                ];
+                $out->summary = $this->summarizeRow($out);
 
-                return $row;
+                return $out;
             });
     }
 

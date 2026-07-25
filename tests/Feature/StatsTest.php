@@ -12,8 +12,15 @@ class StatsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seedSuccessfulResults(string $isp, string $provider, string $host, string $ip, int $count, float $avg): PingTarget
-    {
+    private function seedSuccessfulResults(
+        string $isp,
+        string $provider,
+        string $host,
+        string $ip,
+        int $count,
+        float $avg,
+        ?string $connectionType = null,
+    ): PingTarget {
         $target = PingTarget::create([
             'name' => $provider.' Node',
             'host' => $host,
@@ -37,6 +44,7 @@ class StatsTest extends TestCase
                 'client_isp' => $isp,
                 'client_asn' => '9121',
                 'client_country_code' => 'TR',
+                'connection_type' => $connectionType,
                 'user_id' => $user->id,
                 'tested_at' => now()->subMinutes($i),
             ]);
@@ -88,5 +96,52 @@ class StatsTest extends TestCase
 
         $this->assertStringNotContainsString('203.0.113.', $html);
         $this->assertStringNotContainsString('user_id', $html);
+    }
+
+    public function test_stats_split_wifi_and_ethernet_averages(): void
+    {
+        $target = PingTarget::create([
+            'name' => 'Cloudflare Node',
+            'host' => '1.1.1.1',
+            'category' => 'other',
+            'provider' => 'Cloudflare',
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create();
+
+        foreach ([
+            ['wifi', 30.0],
+            ['wifi', 50.0],
+            ['ethernet', 20.0],
+            ['ethernet', 40.0],
+        ] as $i => [$link, $avg]) {
+            PingResult::create([
+                'ping_target_id' => $target->id,
+                'session_id' => sprintf('22222222-2222-2222-2222-%012d', $i),
+                'status' => 'success',
+                'avg_latency_ms' => $avg,
+                'min_latency_ms' => $avg,
+                'max_latency_ms' => $avg + 5,
+                'resolved_ip' => '1.1.1.1',
+                'client_ip' => '203.0.113.'.($i + 10),
+                'client_isp' => 'Turk Telekom',
+                'client_asn' => '9121',
+                'client_country_code' => 'TR',
+                'connection_type' => $link,
+                'user_id' => $user->id,
+                'tested_at' => now()->subMinutes($i),
+            ]);
+        }
+
+        $response = $this->get(route('stats.index', ['min_samples' => 3]));
+
+        $response->assertOk();
+        $response->assertSee(__('ping.stats_avg_overall'), false);
+        $response->assertSee(__('ping.stats_avg_wifi'), false);
+        $response->assertSee(__('ping.stats_avg_ethernet'), false);
+        // overall avg = (30+50+20+40)/4 = 35; wifi = 40; ethernet = 30
+        $response->assertSee('35 ms', false);
+        $response->assertSee('40 ms', false);
+        $response->assertSee('30 ms', false);
     }
 }

@@ -18,6 +18,9 @@
                     <span>PING</span>
                 </a>
                 <nav class="hidden items-center gap-5 text-xs uppercase tracking-widest sm:flex">
+                    <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'border-b border-neutral-950 pb-0.5 text-neutral-950' : 'text-neutral-500 hover:text-neutral-950' }}">
+                        {{ __('ping.nav_home') }}
+                    </a>
                     <a href="{{ route('stats.index') }}" class="{{ request()->routeIs('stats.*') ? 'border-b border-neutral-950 pb-0.5 text-neutral-950' : 'text-neutral-500 hover:text-neutral-950' }}">
                         {{ __('ping.nav_stats') }}
                     </a>
@@ -91,6 +94,9 @@
             @click.outside="close()"
         >
             <nav class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 text-sm">
+                <a href="{{ route('home') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('home') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
+                    {{ __('ping.nav_home') }}
+                </a>
                 <a href="{{ route('stats.index') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('stats.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
                     {{ __('ping.nav_stats') }}
                 </a>

@@ -12,11 +12,8 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
-// No browser-based ping tool. Public surface: anonymized ISP stats.
-// Authenticated users land on their member panel.
-Route::get('/', function () {
-    return redirect()->route(auth()->check() ? 'history.index' : 'stats.index');
-})->name('home');
+// Public landing: purpose + client download. Measurements stay in the TUI client.
+Route::view('/', 'ping.home')->name('home');
 
 Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
 

@@ -179,13 +179,13 @@ There are two GitHub Actions workflows for the Go terminal client:
 To publish a new release, bump `ui/VERSION` and push a matching tag:
 
 ```bash
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 or trigger it manually via **Actions → UI Release → Run workflow** without
 creating a tag first (leaving the version input empty uses `ui/VERSION`,
-currently `0.1.2`).
+currently `0.1.3`).
 
 To build for all platforms locally, use `ui/Makefile`, `ui/build.sh`
 (Linux/macOS), or `ui/build.ps1` (Windows); see [`docs/BUILD.md`](docs/BUILD.md)

@@ -83,6 +83,7 @@ type ResultPayload struct {
 	Samples           []float64      `json:"samples,omitempty"`
 	Metric            string         `json:"metric,omitempty"`
 	ClientVersion     string         `json:"client_version,omitempty"`
+	ConnectionType    string         `json:"connection_type,omitempty"` // wifi | ethernet | unknown
 	NetworkAnalysis   map[string]any `json:"network_analysis,omitempty"`
 }
 

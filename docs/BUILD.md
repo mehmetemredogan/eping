@@ -133,7 +133,7 @@ archives will appear under the repository's **Releases** page.
 ## Versioning
 
 [`ui/VERSION`](../ui/VERSION) is the single source of truth for the
-project's **next planned release** (currently `0.1.2`). It follows a plain
+project's **next planned release** (currently `0.1.3`). It follows a plain
 `MAJOR.MINOR` (or `MAJOR.MINOR.PATCH`) scheme — no leading `v`, no trailing
 newline content beyond the number itself.
 

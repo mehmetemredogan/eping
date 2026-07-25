@@ -119,4 +119,53 @@ class ResultControllerTest extends TestCase
 
         $response->assertStatus(201);
     }
+
+    public function test_stores_connection_type_and_traceroute_raw_detail(): void
+    {
+        $user = User::factory()->create();
+        $target = $this->target();
+
+        $response = $this->actingAs($user, 'sanctum')->postJson("/api/v1/targets/{$target->id}/results", [
+            'status' => 'success',
+            'avg_latency_ms' => 22,
+            'min_latency_ms' => 18,
+            'max_latency_ms' => 30,
+            'packets_sent' => 4,
+            'packets_received' => 4,
+            'connection_type' => 'wifi',
+            'network_analysis' => [
+                'status' => 'good',
+                'summary' => 'ok',
+                'connection_type' => 'wifi',
+                'path' => [
+                    'tool' => 'tracert',
+                    'command' => 'tracert -d -h 20 example.com',
+                    'hop_count' => 2,
+                    'reached' => true,
+                    'local_hops' => 1,
+                    'public_hops' => 1,
+                    'timeout_hops' => 0,
+                    'raw' => "  1  192.168.1.1  1 ms\n  2  93.184.216.34  20 ms\n",
+                    'hops' => [
+                        ['ttl' => 1, 'ip' => '192.168.1.1', 'avg_ms' => 1.0, 'timeout' => false, 'kind' => 'private'],
+                        ['ttl' => 2, 'ip' => '93.184.216.34', 'avg_ms' => 20.0, 'timeout' => false, 'kind' => 'public'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('ping_results', [
+            'ping_target_id' => $target->id,
+            'user_id' => $user->id,
+            'connection_type' => 'wifi',
+        ]);
+
+        $stored = \App\Models\PingResult::query()->where('ping_target_id', $target->id)->first();
+        $this->assertNotNull($stored);
+        $this->assertSame('wifi', $stored->connection_type);
+        $this->assertSame('tracert', $stored->network_analysis['path']['tool'] ?? null);
+        $this->assertStringContainsString('192.168.1.1', $stored->network_analysis['path']['raw'] ?? '');
+        $this->assertCount(2, $stored->network_analysis['path']['hops'] ?? []);
+    }
 }

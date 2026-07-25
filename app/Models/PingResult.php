@@ -28,6 +28,7 @@ class PingResult extends Model
         'client_asn',
         'client_isp',
         'client_country_code',
+        'connection_type',
         'client_dns',
         'network_analysis',
         'user_id',

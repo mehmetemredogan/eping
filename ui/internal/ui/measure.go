@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	"pinglab/ui/internal/api"
+	"pinglab/ui/internal/linktype"
 	"pinglab/ui/internal/netinfo"
 	"pinglab/ui/internal/ping"
 	"pinglab/ui/internal/traceroute"
 )
+
+const maxTraceRawBytes = 64 * 1024
 
 func measureTarget(client *api.Client, token string, t api.Target, samples int, withTrace bool) rowState {
 	st := ping.MeasureHTTP(context.Background(), t.Host, samples)
@@ -20,6 +23,8 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 		path = &tr
 	}
 	report := netinfo.Analyze(st, path)
+	conn := linktype.Detect()
+	report.ConnectionType = string(conn)
 
 	row := rowState{
 		target:        t,
@@ -79,6 +84,7 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 		Samples:           vals,
 		Metric:            "http_ttfb",
 		ClientVersion:     "eping/1.0",
+		ConnectionType:    string(conn),
 		NetworkAnalysis:   reportToMap(report),
 	}); err != nil {
 		row.uploadErr = err.Error()
@@ -120,9 +126,9 @@ func trendInsight(t *api.Trend) string {
 }
 
 func reportToMap(r netinfo.Report) map[string]any {
-	if r.Path != nil {
+	if r.Path != nil && len(r.Path.Raw) > maxTraceRawBytes {
 		cp := *r.Path
-		cp.Raw = ""
+		cp.Raw = cp.Raw[:maxTraceRawBytes] + "\n…[truncated]"
 		r.Path = &cp
 	}
 	b, err := json.Marshal(r)

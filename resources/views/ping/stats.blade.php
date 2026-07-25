@@ -56,7 +56,7 @@
         @endif
 
         <div class="overflow-x-auto border border-neutral-950 bg-white">
-            <table class="js-datatable w-full text-left text-sm" data-dt-per-page="25" data-dt-nosort="8">
+            <table class="js-datatable w-full text-left text-sm" data-dt-per-page="25" data-dt-nosort="11">
                 <thead class="border-b border-neutral-950 text-[10px] uppercase tracking-widest text-neutral-400">
                     <tr>
                         <th class="px-3 py-3 font-medium">{{ __('ping.stats_isp') }}</th>
@@ -65,9 +65,12 @@
                         <th class="px-3 py-3 font-medium">{{ __('ping.target') }}</th>
                         <th class="px-3 py-3 font-medium">{{ __('ping.host') }}</th>
                         <th class="px-3 py-3 font-medium">{{ __('ping.stats_resolved_ip') }}</th>
-                        <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_avg') }}</th>
+                        <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_avg_overall') }}</th>
+                        <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_avg_wifi') }}</th>
+                        <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_avg_ethernet') }}</th>
                         <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_range') }}</th>
                         <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_samples') }}</th>
+                        <th class="px-3 py-3 font-medium text-right">{{ __('ping.stats_samples_link') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,6 +78,9 @@
                         @php
                             $ms = (float) $row->avg_latency_ms;
                             $tone = $ms < 80 ? 'text-green-600' : ($ms < 180 ? 'text-yellow-600' : 'text-red-600');
+                            $formatLinkAvg = function (?float $value): string {
+                                return $value !== null ? $value.' ms' : '—';
+                            };
                         @endphp
                         <tr class="border-b border-neutral-100 hover:bg-neutral-50" title="{{ $row->summary }}">
                             <td class="px-3 py-3">
@@ -89,12 +95,18 @@
                             <td class="px-3 py-3 mono text-xs text-neutral-600">{{ $row->host }}</td>
                             <td class="px-3 py-3 mono text-xs">{{ $row->resolved_ip }}</td>
                             <td class="px-3 py-3 text-right mono font-medium {{ $tone }}">{{ $row->avg_latency_ms }} ms</td>
+                            <td class="px-3 py-3 text-right mono text-xs text-neutral-600">{{ $formatLinkAvg($row->avg_wifi_ms) }}</td>
+                            <td class="px-3 py-3 text-right mono text-xs text-neutral-600">{{ $formatLinkAvg($row->avg_ethernet_ms) }}</td>
                             <td class="px-3 py-3 text-right mono text-xs text-neutral-500">{{ $row->min_latency_ms }}–{{ $row->max_latency_ms }}</td>
                             <td class="px-3 py-3 text-right mono text-xs text-neutral-500">{{ $row->samples }}</td>
+                            <td class="px-3 py-3 text-right mono text-[10px] text-neutral-500">
+                                {{ __('ping.stats_samples_wifi_short') }} {{ $row->samples_wifi }}
+                                · {{ __('ping.stats_samples_ethernet_short') }} {{ $row->samples_ethernet }}
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-4 py-16 text-center text-sm text-neutral-500">
+                            <td colspan="12" class="px-4 py-16 text-center text-sm text-neutral-500">
                                 {{ __('ping.stats_empty') }}
                             </td>
                         </tr>

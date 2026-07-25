@@ -29,6 +29,9 @@ type Report struct {
 	Latency     LatencyView        `json:"latency"`
 	Path        *traceroute.Result `json:"path,omitempty"`
 
+	// ConnectionType is wifi, ethernet, or unknown (detected on the client).
+	ConnectionType string `json:"connection_type,omitempty"`
+
 	// Ping (HTTP TTFB) and traceroute are reported separately so callers
 	// (the UI) can show them as two distinct sections instead of one
 	// merged blob.

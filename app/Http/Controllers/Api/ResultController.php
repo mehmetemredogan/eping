@@ -45,6 +45,7 @@ class ResultController extends Controller
             'samples.*' => ['numeric', 'min:0'],
             'metric' => ['nullable', 'string', 'max:32'],
             'client_version' => ['nullable', 'string', 'max:64'],
+            'connection_type' => ['nullable', 'string', 'in:wifi,ethernet,unknown'],
             'network_analysis' => ['nullable', 'array'],
         ]);
 
@@ -88,18 +89,34 @@ class ResultController extends Controller
             }
             if (! empty($analysis['path']['hop_count'])) {
                 $raw[] = sprintf(
-                    'hops=%d local=%d public=%d timeout=%d tool=%s',
+                    'hops=%d local=%d public=%d timeout=%d tool=%s reached=%s',
                     (int) $analysis['path']['hop_count'],
                     (int) ($analysis['path']['local_hops'] ?? 0),
                     (int) ($analysis['path']['public_hops'] ?? 0),
                     (int) ($analysis['path']['timeout_hops'] ?? 0),
                     (string) ($analysis['path']['tool'] ?? '?'),
+                    ! empty($analysis['path']['reached']) ? 'yes' : 'no',
                 );
             }
-            // Drop bulky raw traceroute text from stored JSON.
-            if (isset($analysis['path']['raw'])) {
-                unset($analysis['path']['raw']);
+            // Keep hop list + tool output, but cap raw traceroute text size.
+            if (isset($analysis['path']['raw']) && is_string($analysis['path']['raw'])) {
+                $maxRaw = 64 * 1024;
+                if (strlen($analysis['path']['raw']) > $maxRaw) {
+                    $analysis['path']['raw'] = substr($analysis['path']['raw'], 0, $maxRaw)."\n…[truncated]";
+                }
             }
+        }
+
+        $connectionType = $validated['connection_type']
+            ?? (is_array($analysis) ? ($analysis['connection_type'] ?? null) : null);
+        if (! in_array($connectionType, ['wifi', 'ethernet', 'unknown'], true)) {
+            $connectionType = null;
+        }
+        if (is_array($analysis) && $connectionType) {
+            $analysis['connection_type'] = $connectionType;
+        }
+        if ($connectionType) {
+            $raw[] = 'link: '.$connectionType;
         }
 
         $clientIp = $request->ip();
@@ -133,6 +150,7 @@ class ResultController extends Controller
             'client_country_code' => isset($clientGeo['countryCode'])
                 ? strtoupper((string) $clientGeo['countryCode'])
                 : null,
+            'connection_type' => $connectionType,
             'client_dns' => null,
             'network_analysis' => $analysis,
             'user_id' => $request->user()->id,

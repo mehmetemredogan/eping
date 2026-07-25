@@ -21,6 +21,17 @@
                 <div><dt class="text-xs text-neutral-400">{{ __('admin.field_packet_loss') }}</dt><dd>{{ $result->packet_loss_percent ?? 0 }}%</dd></div>
                 <div><dt class="text-xs text-neutral-400">{{ __('admin.field_packets') }}</dt><dd>{{ $result->packets_received }}/{{ $result->packets_sent }}</dd></div>
                 <div><dt class="text-xs text-neutral-400">{{ __('admin.field_client_ip') }}</dt><dd class="mono text-xs">{{ $result->client_ip ?? '—' }}</dd></div>
+                @php
+                    $link = $result->connection_type
+                        ?? (is_array($result->network_analysis) ? ($result->network_analysis['connection_type'] ?? null) : null);
+                    $linkLabel = match ($link) {
+                        'wifi' => __('ping.connection_wifi'),
+                        'ethernet' => __('ping.connection_ethernet'),
+                        'unknown' => __('ping.connection_unknown'),
+                        default => '—',
+                    };
+                @endphp
+                <div><dt class="text-xs text-neutral-400">{{ __('admin.field_connection_type') }}</dt><dd>{{ $linkLabel }}</dd></div>
             </dl>
 
             @if($result->client_geo)
@@ -92,6 +103,64 @@
                     <p class="text-sm text-neutral-400">{{ __('admin.no_edns') }}</p>
                 @endif
             </div>
+        </div>
+
+        @php
+            $path = is_array($result->network_analysis) ? ($result->network_analysis['path'] ?? null) : null;
+            $hops = is_array($path) ? ($path['hops'] ?? []) : [];
+        @endphp
+        <div class="border border-neutral-950 bg-white p-5 lg:col-span-2">
+            <h2 class="mb-3 text-sm font-semibold">{{ __('admin.traceroute_section') }}</h2>
+            @if(is_array($path))
+                <dl class="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                    <div><dt class="text-xs text-neutral-400">{{ __('admin.field_trace_tool') }}</dt><dd class="mono text-xs">{{ $path['tool'] ?? '—' }}</dd></div>
+                    <div><dt class="text-xs text-neutral-400">{{ __('admin.field_trace_hops') }}</dt><dd class="mono">{{ $path['hop_count'] ?? count($hops) }}</dd></div>
+                    <div><dt class="text-xs text-neutral-400">{{ __('admin.field_trace_reached') }}</dt><dd>{{ ! empty($path['reached']) ? __('ping.yes') : __('ping.no') }}</dd></div>
+                    <div><dt class="text-xs text-neutral-400">{{ __('admin.field_trace_duration') }}</dt><dd class="mono">{{ isset($path['duration_ms']) ? $path['duration_ms'].' ms' : '—' }}</dd></div>
+                    <div class="col-span-2 sm:col-span-4"><dt class="text-xs text-neutral-400">{{ __('admin.field_trace_command') }}</dt><dd class="mono break-all text-xs text-neutral-600">{{ $path['command'] ?? '—' }}</dd></div>
+                </dl>
+                @if(! empty($path['error']))
+                    <p class="mb-3 text-sm text-red-600">{{ $path['error'] }}</p>
+                @endif
+                @if(count($hops) > 0)
+                    <div class="overflow-x-auto border border-neutral-100">
+                        <table class="w-full text-left text-xs">
+                            <thead class="border-b border-neutral-200 text-[10px] uppercase tracking-widest text-neutral-400">
+                                <tr>
+                                    <th class="px-2 py-2 font-medium">{{ __('admin.field_trace_hop') }}</th>
+                                    <th class="px-2 py-2 font-medium">{{ __('admin.field_trace_ip') }}</th>
+                                    <th class="px-2 py-2 font-medium">{{ __('admin.field_trace_rtt') }}</th>
+                                    <th class="px-2 py-2 font-medium">{{ __('admin.field_trace_kind') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($hops as $hop)
+                                    <tr class="border-b border-neutral-50">
+                                        <td class="px-2 py-1.5 mono">{{ $hop['ttl'] ?? '—' }}</td>
+                                        <td class="px-2 py-1.5 mono">{{ ! empty($hop['timeout']) ? '*' : ($hop['ip'] ?? '—') }}</td>
+                                        <td class="px-2 py-1.5 mono text-neutral-600">
+                                            @if(! empty($hop['rtts_ms']))
+                                                {{ implode(' / ', array_map(fn ($v) => round((float) $v, 1).'ms', $hop['rtts_ms'])) }}
+                                            @elseif(isset($hop['avg_ms']))
+                                                {{ round((float) $hop['avg_ms'], 1) }} ms
+                                            @else
+                                                —
+                                            @endif
+                                        </td>
+                                        <td class="px-2 py-1.5 text-neutral-500">{{ $hop['kind'] ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+                @if(! empty($path['raw']))
+                    <h3 class="mb-2 mt-4 text-xs uppercase tracking-wider text-neutral-400">{{ __('admin.trace_raw_section') }}</h3>
+                    <pre class="max-h-80 overflow-auto whitespace-pre-wrap border border-neutral-100 bg-neutral-50 p-4 mono text-[11px] text-neutral-600">{{ $path['raw'] }}</pre>
+                @endif
+            @else
+                <p class="text-sm text-neutral-400">{{ __('admin.no_traceroute') }}</p>
+            @endif
         </div>
 
         <div class="border border-neutral-950 bg-white p-5 lg:col-span-2">
