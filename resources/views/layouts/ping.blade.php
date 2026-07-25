@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name', 'Ping') }}</title>
+    @include('partials.favicon')
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -142,10 +143,18 @@
     </main>
 
     <footer class="mt-12 border-t border-neutral-950 sm:mt-16">
-        <div class="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <span class="mono">PING - mehmetemredogan.tr</span>
-            <span class="mono">// {{ __('ping.footer_note') }}</span>
+        <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-neutral-500 sm:px-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span class="mono">PING - mehmetemredogan.tr</span>
+                <span class="mono">// {{ __('ping.footer_note') }}</span>
+            </div>
+            <nav class="flex flex-wrap gap-x-4 gap-y-1">
+                <a href="{{ route('legal.terms') }}" class="hover:text-neutral-950">{{ __('legal.nav_terms') }}</a>
+                <a href="{{ route('legal.privacy') }}" class="hover:text-neutral-950">{{ __('legal.nav_privacy') }}</a>
+                <a href="{{ route('legal.cookies') }}" class="hover:text-neutral-950">{{ __('legal.nav_cookies') }}</a>
+            </nav>
         </div>
     </footer>
+    @include('partials.cookie-banner')
 </body>
 </html>

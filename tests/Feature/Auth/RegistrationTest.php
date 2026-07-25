@@ -27,6 +27,7 @@ class RegistrationTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
             'captcha' => 'abc42',
+            'terms' => '1',
         ]);
 
         $this->assertAuthenticated();
@@ -43,6 +44,7 @@ class RegistrationTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
             'captcha' => 'WRONG',
+            'terms' => '1',
         ]);
 
         $this->assertGuest();

@@ -35,9 +35,11 @@ class RegisteredUserController extends Controller
             ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'captcha' => ['required', 'string'],
+            'terms' => ['accepted'],
         ], [
             'username.regex' => __('ping.username_format'),
             'captcha.required' => __('ping.captcha_required'),
+            'terms.accepted' => __('legal.register_accept_required'),
         ]);
 
         if (! $captcha->matches($request->string('captcha')->toString())) {

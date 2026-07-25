@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Ping - mehmetemredogan.tr') }}</title>
+    @include('partials.favicon')
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -26,6 +27,12 @@
                 {{ $slot }}
             </div>
         </div>
+        <nav class="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-neutral-500">
+            <a href="{{ route('legal.terms') }}" class="hover:text-neutral-950">{{ __('legal.nav_terms') }}</a>
+            <a href="{{ route('legal.privacy') }}" class="hover:text-neutral-950">{{ __('legal.nav_privacy') }}</a>
+            <a href="{{ route('legal.cookies') }}" class="hover:text-neutral-950">{{ __('legal.nav_cookies') }}</a>
+        </nav>
     </div>
+    @include('partials.cookie-banner')
 </body>
 </html>

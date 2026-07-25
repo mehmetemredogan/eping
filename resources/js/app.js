@@ -135,6 +135,26 @@ document.addEventListener('alpine:init', () => {
             this.open = false;
         },
     }));
+
+    Alpine.data('cookieNotice', () => ({
+        visible: false,
+        storageKey: 'eping_cookie_notice_v1',
+        init() {
+            try {
+                this.visible = window.localStorage.getItem(this.storageKey) !== '1';
+            } catch {
+                this.visible = true;
+            }
+        },
+        accept() {
+            try {
+                window.localStorage.setItem(this.storageKey, '1');
+            } catch {
+                // ignore quota / private mode
+            }
+            this.visible = false;
+        },
+    }));
 });
 
 Alpine.start();

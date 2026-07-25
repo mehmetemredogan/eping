@@ -17,6 +17,10 @@ Route::view('/', 'ping.home')->name('home');
 
 Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
 
+Route::view('/legal/terms', 'legal.terms')->name('legal.terms');
+Route::view('/legal/privacy', 'legal.privacy')->name('legal.privacy');
+Route::view('/legal/cookies', 'legal.cookies')->name('legal.cookies');
+
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 Route::get('/captcha', [CaptchaController::class, 'image'])->middleware('throttle:30,1')->name('captcha.image');
 

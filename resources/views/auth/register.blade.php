@@ -43,6 +43,27 @@
             @error('captcha') <p class="mt-1 text-xs text-red-600">[!] {{ $message }}</p> @enderror
         </div>
 
+        <div class="border border-neutral-200 bg-neutral-50 p-3">
+            <label class="flex items-start gap-2.5 text-xs leading-relaxed text-neutral-600">
+                <input
+                    id="terms"
+                    type="checkbox"
+                    name="terms"
+                    value="1"
+                    required
+                    @checked(old('terms'))
+                    class="mt-0.5 h-4 w-4 shrink-0 border-neutral-400 text-neutral-950 focus:ring-neutral-950"
+                >
+                <span>
+                    {!! __('legal.register_accept_label', [
+                        'terms' => '<a href="'.e(route('legal.terms')).'" target="_blank" rel="noopener" class="font-medium text-neutral-950 underline underline-offset-2">'.e(__('legal.register_accept_terms')).'</a>',
+                        'privacy' => '<a href="'.e(route('legal.privacy')).'" target="_blank" rel="noopener" class="font-medium text-neutral-950 underline underline-offset-2">'.e(__('legal.register_accept_privacy')).'</a>',
+                    ]) !!}
+                </span>
+            </label>
+            @error('terms') <p class="mt-2 text-xs text-red-600">[!] {{ $message }}</p> @enderror
+        </div>
+
         <button type="submit" class="w-full border border-neutral-950 bg-neutral-950 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-neutral-950">
             {{ __('ping.register') }} →
         </button>
