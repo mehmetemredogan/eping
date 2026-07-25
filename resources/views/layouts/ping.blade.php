@@ -22,6 +22,9 @@
                         <a href="{{ route('history.index') }}" class="{{ request()->routeIs('history.*') ? 'border-b border-neutral-950 pb-0.5 text-neutral-950' : 'text-neutral-500 hover:text-neutral-950' }}">
                             {{ __('ping.nav_history') }}
                         </a>
+                        <a href="{{ route('settings.edit') }}" class="{{ request()->routeIs('settings.*') ? 'border-b border-neutral-950 pb-0.5 text-neutral-950' : 'text-neutral-500 hover:text-neutral-950' }}">
+                            {{ __('ping.nav_settings') }}
+                        </a>
                         @if(auth()->user()->is_admin)
                             <a href="{{ route('admin.dashboard') }}" class="text-neutral-500 hover:text-neutral-950">
                                 {{ __('ping.nav_admin') }}
@@ -88,6 +91,9 @@
                 @auth
                     <a href="{{ route('history.index') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('history.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
                         {{ __('ping.nav_history') }}
+                    </a>
+                    <a href="{{ route('settings.edit') }}" class="px-2 py-2 uppercase tracking-widest {{ request()->routeIs('settings.*') ? 'bg-neutral-950 text-white' : 'text-neutral-600' }}" @click="close()">
+                        {{ __('ping.nav_settings') }}
                     </a>
                     @if(auth()->user()->is_admin)
                         <a href="{{ route('admin.dashboard') }}" class="px-2 py-2 uppercase tracking-widest text-neutral-600" @click="close()">

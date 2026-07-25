@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\CaptchaController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 // No public homepage / browser-based ping tool: the web app only serves
@@ -21,6 +22,11 @@ Route::get('/captcha', [CaptchaController::class, 'image'])->middleware('throttl
 
 Route::middleware('auth')->group(function () {
     Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
+
+    Route::get('/settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::delete('/settings/history', [SettingsController::class, 'clearHistory'])->name('settings.history');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
