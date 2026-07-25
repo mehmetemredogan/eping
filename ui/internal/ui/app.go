@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -103,10 +102,6 @@ type measureMsg struct {
 	row      rowState
 }
 
-type allMeasuredMsg struct {
-	byID map[uint64]rowState
-}
-
 type statusMsg string
 
 type Model struct {
@@ -148,6 +143,12 @@ type Model struct {
 	spin       spinner.Model
 	spinning   bool
 	measureMsg string // live status while measuring
+
+	measureQueue      []api.Target
+	measureWithTrace  bool
+	measureBatchTotal int
+	measureBatchDone  int
+	measureBatchUploadErrs int
 
 	trend      *api.TrendSummary
 	showDetail bool
@@ -352,13 +353,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case measureMsg:
-		m.singleInFlight = false
 		m.metrics[msg.targetID] = msg.row
 		m.patchRow(msg.targetID, msg.row)
 		m.lastPingSummary = msg.row.pingSummary
 		m.lastPingInsights = msg.row.pingInsights
 		m.lastTraceSummary = msg.row.pathSummary
 		m.lastTraceInsights = msg.row.traceInsights
+		if m.testing {
+			m.measureBatchDone++
+			if msg.row.uploadErr != "" {
+				m.measureBatchUploadErrs++
+			}
+			uploadNote := ""
+			if msg.row.uploadErr != "" {
+				uploadNote = " (yüklenemedi)"
+			}
+			m.status = fmt.Sprintf("Ölçüldü: %s%s", msg.row.target.Name, uploadNote)
+			if msg.row.pathSummary != "" {
+				m.status += " · tracert: " + msg.row.pathSummary
+			}
+			if len(m.measureQueue) > 0 {
+				return m.startNextBatchMeasure()
+			}
+			uploadErrs := m.measureBatchUploadErrs
+			m.testing = false
+			m.spinning = false
+			m.measureMsg = ""
+			m.status = fmt.Sprintf("Tamamlandı — %d hedef", m.measureBatchDone)
+			if uploadErrs > 0 {
+				m.status += fmt.Sprintf(" (%d sonuç sunucuya yüklenemedi)", uploadErrs)
+			}
+			if m.cfg.Token != "" {
+				return m, m.cmdFetchTrend()
+			}
+			return m, nil
+		}
+
+		m.singleInFlight = false
 		m.status = msg.row.pingSummary
 		if msg.row.pathSummary != "" {
 			m.status += " · tracert: " + msg.row.pathSummary
@@ -372,27 +403,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.hasMeasuring() {
 			m.spinning = false
 			m.measureMsg = ""
-		}
-		return m, nil
-
-	case allMeasuredMsg:
-		uploadErrs := 0
-		for id, row := range msg.byID {
-			m.metrics[id] = row
-			m.patchRow(id, row)
-			if row.uploadErr != "" {
-				uploadErrs++
-			}
-		}
-		m.testing = false
-		m.spinning = false
-		m.measureMsg = ""
-		m.status = fmt.Sprintf("Tamamlandı — %d hedef", len(msg.byID))
-		if uploadErrs > 0 {
-			m.status += fmt.Sprintf(" (%d sonuç sunucuya yüklenemedi)", uploadErrs)
-		}
-		if m.cfg.Token != "" {
-			return m, m.cmdFetchTrend()
 		}
 		return m, nil
 
@@ -509,15 +519,36 @@ func (m Model) measureAllVisible() (tea.Model, tea.Cmd) {
 	m.lastPingInsights = nil
 	m.lastTraceSummary = ""
 	m.lastTraceInsights = nil
-	m.measureMsg = fmt.Sprintf("%d hedef", len(targets))
-	m.status = "Ölçülüyor: " + m.measureMsg
+	m.measureBatchTotal = len(targets)
+	m.measureBatchDone = 0
+	m.measureBatchUploadErrs = 0
+	m.measureQueue = append([]api.Target(nil), targets...)
+	m.measureWithTrace = m.cfg.TraceOnAll
 	for i := range m.groups {
 		for j := range m.groups[i].Targets {
-			m.clearMeasurement(&m.groups[i].Targets[j])
+			m.resetRowWaiting(&m.groups[i].Targets[j])
 		}
 	}
 	m.spinning = true
-	return m, tea.Batch(m.spin.Tick, m.cmdMeasureAll(targets, m.cfg.TraceOnAll))
+	return m.startNextBatchMeasure()
+}
+
+func (m Model) startNextBatchMeasure() (tea.Model, tea.Cmd) {
+	if len(m.measureQueue) == 0 {
+		m.testing = false
+		m.spinning = false
+		m.measureMsg = ""
+		return m, nil
+	}
+	next := m.measureQueue[0]
+	m.measureQueue = m.measureQueue[1:]
+	m.markRowMeasuring(next.ID)
+	m.measureMsg = fmt.Sprintf("%d/%d: %s", m.measureBatchDone+1, m.measureBatchTotal, next.Name)
+	if m.measureWithTrace {
+		m.measureMsg += " (+ traceroute)"
+	}
+	m.status = "Ölçülüyor: " + m.measureMsg
+	return m, tea.Batch(m.spin.Tick, m.cmdMeasureOne(next, m.measureWithTrace))
 }
 
 // clearMeasurement resets a row's visible values to the "measuring" state.
@@ -544,6 +575,40 @@ func (m *Model) clearMeasurement(row *rowState) {
 	row.trendLabel = ""
 	row.uploadErr = ""
 	m.metrics[row.target.ID] = *row
+}
+
+func (m *Model) resetRowWaiting(row *rowState) {
+	row.avg = "—"
+	row.min = "—"
+	row.max = "—"
+	row.jitter = "—"
+	row.p50 = "—"
+	row.p95 = "—"
+	row.dnsMs = "—"
+	row.tcpMs = "—"
+	row.tlsMs = "—"
+	row.qual = ""
+	row.status = "bekliyor"
+	row.pingSummary = ""
+	row.pingInsights = nil
+	row.pathSummary = ""
+	row.traceInsights = nil
+	row.hops = nil
+	row.trendLabel = ""
+	row.uploadErr = ""
+	m.metrics[row.target.ID] = *row
+}
+
+func (m *Model) markRowMeasuring(targetID uint64) {
+	for gi := range m.groups {
+		for ri := range m.groups[gi].Targets {
+			if m.groups[gi].Targets[ri].target.ID != targetID {
+				continue
+			}
+			m.clearMeasurement(&m.groups[gi].Targets[ri])
+			return
+		}
+	}
 }
 
 func (m Model) hasMeasuring() bool {
@@ -915,33 +980,6 @@ func (m Model) cmdMeasureOne(t api.Target, withTrace bool) tea.Cmd {
 	return func() tea.Msg {
 		row := measureTarget(client, token, t, samples, withTrace)
 		return measureMsg{targetID: t.ID, row: row}
-	}
-}
-
-func (m Model) cmdMeasureAll(targets []api.Target, withTrace bool) tea.Cmd {
-	samples := m.cfg.Samples
-	concurrency := m.cfg.Concurrency
-	client := api.New(strings.TrimSpace(m.apiInput.Value()), m.cfg.Token)
-	token := m.cfg.Token
-	return func() tea.Msg {
-		byID := make(map[uint64]rowState, len(targets))
-		var mu sync.Mutex
-		sem := make(chan struct{}, concurrency)
-		var wg sync.WaitGroup
-		for _, t := range targets {
-			wg.Add(1)
-			go func(t api.Target) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				row := measureTarget(client, token, t, samples, withTrace)
-				mu.Lock()
-				byID[t.ID] = row
-				mu.Unlock()
-			}(t)
-		}
-		wg.Wait()
-		return allMeasuredMsg{byID: byID}
 	}
 }
 

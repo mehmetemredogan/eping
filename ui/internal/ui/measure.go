@@ -15,7 +15,7 @@ import (
 const maxTraceRawBytes = 64 * 1024
 
 func measureTarget(client *api.Client, token string, t api.Target, samples int, withTrace bool) rowState {
-	st := ping.MeasureHTTP(context.Background(), t.Host, samples)
+	st := ping.MeasureHost(context.Background(), t.Host, samples)
 
 	var path *traceroute.Result
 	if withTrace {
@@ -71,6 +71,10 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 	if st.Samples > 0 {
 		loss = 100.0 * float64(st.Samples-received) / float64(st.Samples)
 	}
+	metric := st.Metric
+	if metric == "" {
+		metric = ping.MetricHTTPTTFB
+	}
 
 	if err := client.StoreResult(t.ID, api.ResultPayload{
 		Status:            status,
@@ -82,7 +86,7 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 		PacketsSent:       st.Samples,
 		PacketsReceived:   received,
 		Samples:           vals,
-		Metric:            "http_ttfb",
+		Metric:            metric,
 		ClientVersion:     "eping/1.0",
 		ConnectionType:    string(conn),
 		NetworkAnalysis:   reportToMap(report),

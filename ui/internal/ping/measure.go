@@ -39,7 +39,98 @@ type Stats struct {
 	Samples     int
 	SuccessRate float64
 	Quality     string
+	Metric      string
 	Raw         []Sample
+}
+
+const (
+	MetricHTTPTTFB    = "http_ttfb"
+	MetricTCPConnect  = "tcp_connect"
+)
+
+// MeasureHost picks a probe strategy from the host shape. Bare IP addresses
+// (typical for DNS resolvers) use TCP connect timing because HTTPS to the
+// literal IP often fails TLS even when the network path is healthy.
+func MeasureHost(ctx context.Context, rawHost string, samples int) Stats {
+	host, isIP := parseProbeHost(rawHost)
+	if isIP {
+		return measureTCPHost(ctx, host, samples)
+	}
+	st := MeasureHTTP(ctx, rawHost, samples)
+	if st.Metric == "" {
+		st.Metric = MetricHTTPTTFB
+	}
+	return st
+}
+
+func parseProbeHost(raw string) (host string, isIP bool) {
+	h := strings.TrimSpace(raw)
+	h = strings.TrimPrefix(h, "https://")
+	h = strings.TrimPrefix(h, "http://")
+	if i := strings.IndexAny(h, "/?#"); i >= 0 {
+		h = h[:i]
+	}
+	if parsed, port, err := net.SplitHostPort(h); err == nil {
+		h = parsed
+		_ = port
+	}
+	return h, net.ParseIP(h) != nil
+}
+
+// ParseProbeHostForTest exposes host parsing for unit tests.
+func ParseProbeHostForTest(raw string) (host string, isIP bool) {
+	return parseProbeHost(raw)
+}
+
+func measureTCPHost(ctx context.Context, host string, samples int) Stats {
+	ports := []int{443, 53, 80}
+	var last Stats
+	for _, port := range ports {
+		st := measureTCPPort(ctx, host, port, samples)
+		st.Metric = MetricTCPConnect
+		last = st
+		if st.SuccessRate >= 0.5 {
+			return st
+		}
+	}
+	return last
+}
+
+func measureTCPPort(ctx context.Context, host string, port int, samples int) Stats {
+	if samples < 1 {
+		samples = 4
+	}
+	all := make([]Sample, 0, samples+1)
+	all = append(all, probeTCP(ctx, host, port, true))
+	for i := 0; i < samples; i++ {
+		all = append(all, probeTCP(ctx, host, port, false))
+	}
+	return summarize(all)
+}
+
+// MeasureTCPPortForTest exposes TCP measurement on a specific port for tests.
+func MeasureTCPPortForTest(ctx context.Context, host string, port int, samples int) Stats {
+	st := measureTCPPort(ctx, host, port, samples)
+	st.Metric = MetricTCPConnect
+	return st
+}
+
+func probeTCP(ctx context.Context, host string, port int, warmup bool) Sample {
+	addr := net.JoinHostPort(host, fmt.Sprintf("%d", port))
+	start := time.Now()
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return Sample{OK: false, Error: err.Error(), Warmup: warmup}
+	}
+	_ = conn.Close()
+	ms := round1(msSince(start))
+	return Sample{
+		OK:     true,
+		Ms:     ms,
+		TCPMs:  ms,
+		Warmup: warmup,
+	}
 }
 
 // MeasureHTTP runs one warm-up (discarded) then N timed probes.
@@ -193,6 +284,7 @@ func summarize(all []Sample) Stats {
 		Samples:     len(timed),
 		SuccessRate: 0,
 		Quality:     "fail",
+		Metric:      MetricHTTPTTFB,
 		Raw:         all,
 	}
 	if len(timed) == 0 {

@@ -42,6 +42,7 @@ type Report struct {
 }
 
 type LatencyView struct {
+	Metric      string   `json:"metric,omitempty"`
 	Quality     string   `json:"quality"`
 	AvgMs       *float64 `json:"avg_ms,omitempty"`
 	MinMs       *float64 `json:"min_ms,omitempty"`
@@ -59,6 +60,7 @@ type LatencyView struct {
 // Analyze builds a network report from latency stats and optional traceroute.
 func Analyze(lat ping.Stats, path *traceroute.Result) Report {
 	lv := LatencyView{
+		Metric:      lat.Metric,
 		Quality:     lat.Quality,
 		AvgMs:       lat.AvgMs,
 		MinMs:       lat.MinMs,
@@ -232,13 +234,14 @@ func hopLabel(h traceroute.Hop) string {
 // ping+trace status, so the "Ping:" section never contradicts itself.
 func latencyInsights(lat ping.Stats) []string {
 	out := make([]string, 0, 6)
+	label := probeLabel(lat.Metric)
 	if lat.AvgMs == nil {
-		out = append(out, "HTTP TTFB ölçümü başarısız — hedef yanıt vermedi veya zaman aşımı")
+		out = append(out, label+" ölçümü başarısız — hedef yanıt vermedi veya zaman aşımı")
 		return out
 	}
 	out = append(out, fmt.Sprintf(
-		"HTTP TTFB: ort %.1f ms · başarı %d%% · kalite %s",
-		*lat.AvgMs, int(lat.SuccessRate*100), pingQualityLabelTR(lat.Quality),
+		"%s: ort %.1f ms · başarı %d%% · kalite %s",
+		label, *lat.AvgMs, int(lat.SuccessRate*100), pingQualityLabelTR(lat.Quality),
 	))
 	if lat.P50Ms != nil && lat.P95Ms != nil {
 		out = append(out, fmt.Sprintf("Dağılım: p50 %.1f ms · p95 %.1f ms · min %s · maks %s",
@@ -319,6 +322,13 @@ func pingSummaryTR(lat ping.Stats) string {
 		return "yanıt yok"
 	}
 	return fmt.Sprintf("%s · %.1f ms · başarı %d%%", pingQualityLabelTR(lat.Quality), *lat.AvgMs, int(lat.SuccessRate*100))
+}
+
+func probeLabel(metric string) string {
+	if metric == ping.MetricTCPConnect {
+		return "TCP bağlantı"
+	}
+	return "HTTP TTFB"
 }
 
 func pingQualityLabelTR(q string) string {
