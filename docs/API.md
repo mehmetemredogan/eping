@@ -231,6 +231,34 @@ Public or Authenticated. Returns the most recent network quality test for the au
 
 Public or Authenticated. Returns paginated history of network quality tests.
 
+### `GET /api/v1/quality/targets` (or `GET /api/v1/network-quality/targets`)
+
+Public endpoint. Returns the active probe targets defined dynamically in the database via the Admin Panel (`/admin/quality-targets`). Used by the Go CLI, TUI, and daemon to fetch the test targets dynamically.
+
+Response `200`:
+
+```json
+{
+  "count": 2,
+  "targets": [
+    {
+      "id": 1,
+      "name": "Cloudflare CDN",
+      "url": "https://cloudflare.com",
+      "domain": "cloudflare.com",
+      "category": "cdn"
+    },
+    {
+      "id": 2,
+      "name": "Google",
+      "url": "https://www.google.com",
+      "domain": "www.google.com",
+      "category": "search"
+    }
+  ]
+}
+```
+
 ## Web-only endpoints
 
 These are not part of the versioned API and are only used by the Blade web app

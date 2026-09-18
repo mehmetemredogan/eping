@@ -41,6 +41,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('targets/next-sort-order', [PingTargetController::class, 'nextSortOrder'])->name('targets.next-sort-order');
     Route::resource('targets', PingTargetController::class)->except(['show']);
+    Route::resource('quality-targets', \App\Http\Controllers\Admin\NetworkQualityTargetController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::resource('providers', ProviderController::class)->except(['show']);
     Route::get('results', [PingResultController::class, 'index'])->name('results.index');

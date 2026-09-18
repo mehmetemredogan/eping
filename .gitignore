@@ -30,3 +30,4 @@ Thumbs.db
 /ui/dist/
 *.exe
 *.so
+*.zip

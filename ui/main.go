@@ -47,13 +47,31 @@ func runQuality(args []string) {
 	_ = fs.Parse(args)
 
 	cfg := config.Load()
-	targets := quality.DefaultTargets()
+	client := api.New(cfg.APIURL, cfg.Token)
+	targets, err := quality.FetchTargets(client)
+	if err != nil {
+		if *jsonOut {
+			fmt.Fprintf(os.Stderr, "{\"error\": %q}\n", err.Error())
+		} else {
+			fmt.Printf("  \033[0;31m[!] Hedef listesi API'den alınamadı: %v\033[0m\n", err)
+		}
+		os.Exit(1)
+	}
+
+	if len(targets) == 0 {
+		if *jsonOut {
+			fmt.Println("{\"targets\": [], \"message\": \"no active targets\"}")
+		} else {
+			fmt.Println("  \033[0;33m[!] Tanımlı ağ kalitesi hedefi bulunamadı. Lütfen önce admin panelinden (Ağ Kalitesi Hedefleri) hedefler ekleyin.\033[0m")
+		}
+		return
+	}
 
 	if !*jsonOut {
 		fmt.Printf("Ağ kalite testi başlatılıyor (%d web hedefi taranıyor)...\n", len(targets))
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	results := quality.MeasureAll(ctx, targets, quality.MeasureOptions{

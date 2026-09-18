@@ -310,7 +310,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case targetsMsg:
 		if msg.err != nil {
 			m.err = msg.err.Error()
-			m.status = "Hedef yükleme hatası"
+			if strings.Contains(msg.err.Error(), "deadline exceeded") || strings.Contains(msg.err.Error(), "Timeout") {
+				m.status = "Sunucu zaman aşımı (API yanıt vermedi) — 'r' ile tekrar deneyin"
+			} else {
+				m.status = "Hedef yükleme hatası: " + msg.err.Error()
+			}
 			return m, nil
 		}
 		m.err = ""
@@ -1158,10 +1162,17 @@ func (m *Model) startQualityTest() (tea.Model, tea.Cmd) {
 func (m Model) cmdRunQuality() tea.Cmd {
 	client := m.client
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		targets, err := quality.FetchTargets(client)
+		if err != nil {
+			return qualityDoneMsg{err: fmt.Errorf("Hedefler API'den alınamadı: %w", err)}
+		}
+		if len(targets) == 0 {
+			return qualityDoneMsg{err: fmt.Errorf("Tanımlı ağ kalitesi hedefi yok (admin panelinden ekleyin)")}
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		targets := quality.DefaultTargets()
 		results := quality.MeasureAll(ctx, targets, quality.MeasureOptions{
 			Timeout:     6 * time.Second,
 			Concurrency: 4,

@@ -6,6 +6,7 @@
     $links = [
         ['route' => 'admin.dashboard', 'pattern' => 'admin.dashboard', 'label' => __('admin.nav_dashboard')],
         ['route' => 'admin.targets.index', 'pattern' => 'admin.targets.*', 'label' => __('admin.nav_targets')],
+        ['route' => 'admin.quality-targets.index', 'pattern' => 'admin.quality-targets.*', 'label' => 'Ağ Kalitesi Hedefleri'],
         ['route' => 'admin.categories.index', 'pattern' => 'admin.categories.*', 'label' => __('admin.nav_categories')],
         ['route' => 'admin.providers.index', 'pattern' => 'admin.providers.*', 'label' => __('admin.nav_providers')],
         ['route' => 'admin.results.index', 'pattern' => 'admin.results.*', 'label' => __('admin.nav_results')],

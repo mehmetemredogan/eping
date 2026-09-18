@@ -23,7 +23,7 @@ func New(baseURL, token string) *Client {
 		BaseURL: strings.TrimRight(baseURL, "/"),
 		Token:   token,
 		HTTPClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 	}
 }
@@ -166,6 +166,26 @@ func (c *Client) StoreNetworkQuality(payload NetworkQualityPayload) error {
 	}
 	return c.do("POST", "/api/v1/network-quality", body, true, nil)
 }
+
+type QualityTarget struct {
+	ID       uint64 `json:"id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Domain   string `json:"domain"`
+	Category string `json:"category"`
+}
+
+func (c *Client) QualityTargets() ([]QualityTarget, error) {
+	var out struct {
+		Count   int             `json:"count"`
+		Targets []QualityTarget `json:"targets"`
+	}
+	if err := c.do("GET", "/api/v1/quality/targets", nil, false, &out); err != nil {
+		return nil, err
+	}
+	return out.Targets, nil
+}
+
 
 
 // TrendLast is the user's most recent stored result for a target/overall scope.

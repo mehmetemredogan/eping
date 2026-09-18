@@ -12,6 +12,8 @@ Route::prefix('v1')->group(function () {
 
     // Public read of active targets (desktop can browse before login; report requires auth).
     Route::get('/targets', [TargetController::class, 'index'])->middleware('throttle:60,1');
+    Route::get('/quality/targets', [NetworkQualityController::class, 'targets'])->middleware('throttle:60,1');
+    Route::get('/network-quality/targets', [NetworkQualityController::class, 'targets'])->middleware('throttle:60,1');
     Route::get('/quality/latest', [NetworkQualityController::class, 'latest'])->middleware('throttle:60,1');
 
     Route::middleware('auth:sanctum')->group(function () {

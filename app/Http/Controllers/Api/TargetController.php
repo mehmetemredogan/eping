@@ -7,6 +7,7 @@ use App\Models\PingTarget;
 use App\Models\Provider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class TargetController extends Controller
 {
@@ -15,12 +16,15 @@ class TargetController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = PingTarget::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('provider')
-            ->orderBy('location')
-            ->orderBy('name');
+        $cacheKey = 'api:v1:targets:' . md5($request->fullUrl());
+
+        $data = Cache::remember($cacheKey, now()->addMinutes(15), function () use ($request) {
+            $query = PingTarget::query()
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('provider')
+                ->orderBy('location')
+                ->orderBy('name');
 
         if ($request->filled('category')) {
             $query->where('category', $request->string('category'));
@@ -79,11 +83,14 @@ class TargetController extends Controller
             })
             ->values();
 
-        return response()->json([
-            'count' => $payload->count(),
-            'categories' => PingTarget::categories(),
-            'groups' => $grouped,
-            'targets' => $payload,
-        ]);
+                return [
+                    'count' => $payload->count(),
+                    'categories' => PingTarget::categories(),
+                    'groups' => $grouped,
+                    'targets' => $payload,
+                ];
+            });
+
+        return response()->json($data);
     }
 }

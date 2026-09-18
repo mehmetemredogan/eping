@@ -125,4 +125,22 @@ class NetworkQualityController extends Controller
             'tests' => $tests,
         ]);
     }
+
+    /**
+     * Active network quality targets for dynamic client probing.
+     */
+    public function targets(): JsonResponse
+    {
+        $targets = \App\Models\NetworkQualityTarget::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'url', 'domain', 'category']);
+
+        return response()->json([
+            'count' => $targets->count(),
+            'targets' => $targets,
+        ]);
+    }
 }
+

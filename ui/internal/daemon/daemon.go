@@ -32,7 +32,6 @@ func randomInterval() time.Duration {
 }
 
 func Run(cfg config.Config, opts Options) error {
-	targets := quality.DefaultTargets()
 	client := api.New(cfg.APIURL, cfg.Token)
 	connType := string(linktype.Detect())
 
@@ -46,7 +45,6 @@ func Run(cfg config.Config, opts Options) error {
 		fmt.Printf("  Kullanıcı  : Anonim (Yalnızca yerel ölçüm / sunucuya kaydetme devre dışı)\n")
 	}
 	fmt.Println("  Periyot    : Rastgele (Her ölçümde 15–60 dakika arası dinamik)")
-	fmt.Printf("  Hedef Sayı : %d web servisi\n", len(targets))
 	fmt.Printf("  Bağlantı   : %s\n", connType)
 	fmt.Println("  Çıkmak için Ctrl+C tuşlarına basın.")
 	fmt.Println("\033[1;36m============================================================\033[0m")
@@ -57,7 +55,17 @@ func Run(cfg config.Config, opts Options) error {
 
 	runCycle := func() {
 		now := time.Now()
-		fmt.Printf("[%s] Ağ kalite ölçümü başlatılıyor...\n", now.Format("15:04:05"))
+		targets, err := quality.FetchTargets(client)
+		if err != nil {
+			fmt.Printf("[%s] \033[0;31mHedef listesi API'den alınamadı: %v\033[0m\n", now.Format("15:04:05"), err)
+			return
+		}
+		if len(targets) == 0 {
+			fmt.Printf("[%s] \033[0;33mTanımlı ağ kalitesi hedefi bulunamadı. Lütfen önce admin panelinden hedefler ekleyin.\033[0m\n", now.Format("15:04:05"))
+			return
+		}
+
+		fmt.Printf("[%s] Ağ kalite ölçümü başlatılıyor (%d hedef)...\n", now.Format("15:04:05"), len(targets))
 
 		results := quality.MeasureAll(ctx, targets, quality.MeasureOptions{
 			Timeout:     6 * time.Second,

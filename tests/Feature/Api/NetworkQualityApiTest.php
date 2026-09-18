@@ -105,4 +105,30 @@ class NetworkQualityApiTest extends TestCase
         $historyResp->assertStatus(200);
         $historyResp->assertJsonPath('count', 1);
     }
+
+    public function test_quality_targets_endpoint(): void
+    {
+        \App\Models\NetworkQualityTarget::create([
+            'name' => 'GitHub',
+            'url' => 'https://github.com',
+            'category' => 'code',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        \App\Models\NetworkQualityTarget::create([
+            'name' => 'Inactive Target',
+            'url' => 'https://inactive.com',
+            'category' => 'test',
+            'is_active' => false,
+            'sort_order' => 2,
+        ]);
+
+        $response = $this->getJson('/api/v1/quality/targets');
+        $response->assertStatus(200);
+        $response->assertJsonPath('count', 1);
+        $response->assertJsonCount(1, 'targets');
+        $response->assertJsonFragment(['name' => 'GitHub', 'domain' => 'github.com']);
+        $response->assertJsonMissing(['name' => 'Inactive Target']);
+    }
 }

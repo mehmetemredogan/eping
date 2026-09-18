@@ -3,6 +3,7 @@ package quality
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptrace"
@@ -88,8 +89,19 @@ func MeasureTarget(ctx context.Context, target Target, timeout time.Duration) Re
 		}
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) eping-quality/1.0")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	const (
+		chromeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+		chromeAccept    = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+		chromeLang      = "en-US,en;q=0.9,tr;q=0.8"
+		chromeSecChUa   = `"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"`
+	)
+
+	req.Header.Set("User-Agent", chromeUserAgent)
+	req.Header.Set("Accept", chromeAccept)
+	req.Header.Set("Accept-Language", chromeLang)
+	req.Header.Set("Sec-Ch-Ua", chromeSecChUa)
+	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+	req.Header.Set("Sec-Ch-Ua-Platform", `"Windows"`)
 
 	transport := &http.Transport{
 		DisableKeepAlives: true, // fresh connection to measure DNS + TCP + TLS accurately
@@ -99,9 +111,16 @@ func MeasureTarget(ctx context.Context, target Target, timeout time.Duration) Re
 	client := &http.Client{
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 3 {
-				return http.ErrUseLastResponse
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects: %w", http.ErrUseLastResponse)
 			}
+			// Maintain Chrome headers across 3xx redirects
+			req.Header.Set("User-Agent", chromeUserAgent)
+			req.Header.Set("Accept", chromeAccept)
+			req.Header.Set("Accept-Language", chromeLang)
+			req.Header.Set("Sec-Ch-Ua", chromeSecChUa)
+			req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+			req.Header.Set("Sec-Ch-Ua-Platform", `"Windows"`)
 			return nil
 		},
 	}
@@ -146,10 +165,16 @@ func MeasureTarget(ctx context.Context, target Target, timeout time.Duration) Re
 	_, _ = io.CopyN(io.Discard, resp.Body, 8192)
 
 	res.StatusCode = resp.StatusCode
-	// Consider 2xx, 3xx, and even 401/403/405 as network success because the remote web server was reached successfully
-	res.OK = resp.StatusCode >= 200 && resp.StatusCode < 500
-	if !res.OK {
-		res.Error = resp.Status
+	// 4xx (client errors) and 5xx (server errors) are failures.
+	// Only 2xx (and 3xx if any redirect terminates without error) are successful.
+	if resp.StatusCode >= 400 {
+		res.OK = false
+		res.Error = fmt.Sprintf("HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+	} else if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		res.OK = true
+	} else {
+		res.OK = false
+		res.Error = fmt.Sprintf("HTTP %d", resp.StatusCode)
 	}
 
 	return res

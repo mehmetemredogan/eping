@@ -42,7 +42,7 @@ The web app provides authentication, the member panel (ping history), the networ
 - **Controllers**:
   - `Http/Controllers` — `HistoryController`, `NetworkQualityController` (web views).
   - `Http/Controllers/Api` — `ResultController`, `NetworkQualityController`, `TargetController`, `AuthController`.
-  - `Http/Controllers/Admin` — `DashboardController`, `TargetController`, `ProviderController`, `LogController`.
+  - `Http/Controllers/Admin` — `DashboardController`, `TargetController`, `NetworkQualityTargetController`, `ProviderController`, `LogController`.
 - **Services**:
   - `DnsLookupService` — resolves DNS records, PTR (rDNS), and EDNS/DoH data for results submitted via the API.
   - `NetworkTrendService` — compares a user's recent results against their own historical baseline (used by `/api/v1/results/trend`).
@@ -50,7 +50,8 @@ The web app provides authentication, the member panel (ping history), the networ
 - **Models**:
   - `PingTarget` (host + category + provider metadata).
   - `PingResult` (one measurement row per terminal-client submission, including DNS JSON blobs and `network_analysis`).
-  - `NetworkQualityTest` (comprehensive web access tests measuring DNS, TCP, TLS, TTFB across 12 services with score 0-100 and grade).
+  - `NetworkQualityTarget` (dynamic web targets probed by quality test, managed via `/admin/quality-targets`).
+  - `NetworkQualityTest` (comprehensive web access tests measuring DNS, TCP, TLS, TTFB across active targets with score 0-100 and grade).
   - `Provider` (Markdown description, managed in the admin panel).
   - `User` (username/password auth, `is_admin` flag).
 - **Middleware**:
@@ -68,7 +69,7 @@ An independently versioned Go module (`pinglab/ui`) supporting multiple operatio
 - `internal/api` — HTTP client for Laravel `/api/v1/*` endpoints (login, targets, results, trend, network-quality).
 - `internal/ping` — local HTTP TTFB measurement with DNS/TCP/TLS timing breakdown and percentile (p50/p95) computation.
 - `internal/traceroute` — wraps the OS's `tracert`/`traceroute`/`tracepath` and classifies each hop.
-- `internal/quality` — concurrent probe runner (`httptrace`) testing 12 real web services (Google, Cloudflare, Apple, Netflix, etc.), calculating 0–100 quality score, grade (A+ to F), and formatting terminal/JSON reports.
+- `internal/quality` — concurrent probe runner (`httptrace`) testing dynamic web services fetched from the API (`/api/v1/quality/targets`), calculating 0–100 quality score, grade (A+ to F), and formatting terminal/JSON reports.
 - `internal/daemon` — headless background monitoring service executing periodic quality tests and API reporting.
 - `internal/ui` — the Bubble Tea model/view/update loop, keyboard shortcuts, and rendering (`app.go`, `layout.go`, `measure.go`).
 
@@ -80,7 +81,7 @@ An independently versioned Go module (`pinglab/ui`) supporting multiple operatio
 ## Data flow
 
 1. **Target Ping**: The terminal client measures HTTP TTFB + traceroute, then submits to `POST /api/v1/targets/{target}/results`. Results are persisted to `ping_results` and displayed in `/history`.
-2. **Network Quality Test**: The client probes 12 diverse web targets, evaluates DNS, TCP, TLS, TTFB, packet loss, and overall score, then submits to `POST /api/v1/network-quality`. Results are persisted to `network_quality_tests` and displayed in `/quality`.
+2. **Network Quality Test**: The client probes dynamic web targets fetched from the server, evaluates DNS, TCP, TLS, TTFB, packet loss, and overall score, then submits to `POST /api/v1/network-quality`. Results are persisted to `network_quality_tests` and displayed in `/quality`.
 
 ## Storage
 
