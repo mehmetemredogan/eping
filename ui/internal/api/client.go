@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 )
@@ -141,6 +142,32 @@ func (c *Client) StoreResult(targetID uint64, payload ResultPayload) error {
 	return c.do("POST", fmt.Sprintf("/api/v1/targets/%d/results", targetID), body, true, nil)
 }
 
+type NetworkQualityPayload struct {
+	Score             int               `json:"score"`
+	Grade             string            `json:"grade"`
+	Status            string            `json:"status"`
+	Summary           string            `json:"summary,omitempty"`
+	AvgLatencyMs      *float64          `json:"avg_latency_ms,omitempty"`
+	AvgDNSMs          *float64          `json:"avg_dns_ms,omitempty"`
+	AvgTCPMs          *float64          `json:"avg_tcp_ms,omitempty"`
+	AvgTLSMs          *float64          `json:"avg_tls_ms,omitempty"`
+	AvgTTFBMs         *float64          `json:"avg_ttfb_ms,omitempty"`
+	PacketLossPercent float64           `json:"packet_loss_percent"`
+	ConnectionType    string            `json:"connection_type,omitempty"`
+	Results           any               `json:"results"`
+	Insights          map[string]string `json:"insights,omitempty"`
+	TestedAt          string            `json:"tested_at,omitempty"`
+}
+
+func (c *Client) StoreNetworkQuality(payload NetworkQualityPayload) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	return c.do("POST", "/api/v1/network-quality", body, true, nil)
+}
+
+
 // TrendLast is the user's most recent stored result for a target/overall scope.
 type TrendLast struct {
 	Status            string   `json:"status"`
@@ -232,6 +259,17 @@ func (c *Client) do(method, path string, body []byte, auth bool, out any) error 
 			Errors  map[string][]string `json:"errors"`
 		}
 		_ = json.Unmarshal(raw, &apiErr)
+		if len(apiErr.Errors) > 0 {
+			var errMsgs []string
+			for field, msgs := range apiErr.Errors {
+				errMsgs = append(errMsgs, fmt.Sprintf("%s: %s", field, strings.Join(msgs, ", ")))
+			}
+			sort.Strings(errMsgs)
+			if apiErr.Message != "" {
+				return fmt.Errorf("%s (%s)", apiErr.Message, strings.Join(errMsgs, "; "))
+			}
+			return fmt.Errorf("%s", strings.Join(errMsgs, "; "))
+		}
 		if apiErr.Message != "" {
 			return fmt.Errorf("%s", apiErr.Message)
 		}

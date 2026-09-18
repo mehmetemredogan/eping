@@ -168,4 +168,47 @@ class ResultControllerTest extends TestCase
         $this->assertStringContainsString('192.168.1.1', $stored->network_analysis['path']['raw'] ?? '');
         $this->assertCount(2, $stored->network_analysis['path']['hops'] ?? []);
     }
+
+    public function test_stores_result_with_session_id_and_large_packet_count(): void
+    {
+        $user = User::factory()->create();
+        $target = $this->target();
+        $sessionId = (string) \Illuminate\Support\Str::uuid();
+
+        $response = $this->actingAs($user, 'sanctum')->postJson("/api/v1/targets/{$target->id}/results", [
+            'session_id' => $sessionId,
+            'status' => 'success',
+            'avg_latency_ms' => 15,
+            'min_latency_ms' => 10,
+            'max_latency_ms' => 20,
+            'packets_sent' => 50,
+            'packets_received' => 48,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('ping_results', [
+            'ping_target_id' => $target->id,
+            'session_id' => $sessionId,
+            'packets_sent' => 50,
+            'packets_received' => 48,
+        ]);
+    }
+
+    public function test_packets_sent_cannot_exceed_100(): void
+    {
+        $user = User::factory()->create();
+        $target = $this->target();
+
+        $response = $this->actingAs($user, 'sanctum')->postJson("/api/v1/targets/{$target->id}/results", [
+            'status' => 'success',
+            'avg_latency_ms' => 15,
+            'min_latency_ms' => 10,
+            'max_latency_ms' => 20,
+            'packets_sent' => 101,
+            'packets_received' => 100,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['packets_sent']);
+    }
 }

@@ -1,76 +1,143 @@
 <p align="center"><b>🇹🇷 Türkçe</b> · <a href="README.en.md">🇬🇧 English</a></p>
 
-# ePing (Extended Ping) — Go UI
+# ePing (Extended Ping) — Go Terminal İstemcisi
 
-Laravel API üzerinden hedef listesi ve oturum yöneten terminal istemci.
-Gecikme: yerel HTTP **TTFB** (DNS/TCP/TLS kırılımı, p50/p95 ile birlikte).
-Yol: OS `tracert` / `traceroute` / `tracepath` (hop bazlı analiz).
+ePing Go istemcisi, yüksek doğruluklu HTTP TTFB, traceroute analizi ve **gerçek web servisleri üzerinden ağ kalitesi testi** (Network Quality Test) gerçekleştiren çok modlu bir ağ test aracıdır.
 
-## Kurulum
+## Çalıştırma Modları
+
+İstemci üç farklı modda çalıştırılabilir:
+
+```text
+KULLANIM:
+  eping                    İnteraktif terminal arayüzünü (TUI) başlatır
+  eping quality [bayraklar] Gerçek web servisleri üzerinden ağ kalitesini test eder
+  eping daemon [bayraklar]  Arkaplanda periyodik olarak ağ kalitesini izler ve raporlar
+  eping version            Versiyon bilgisini gösterir
+```
+
+---
+
+### 1. İnteraktif TUI Modu (`eping`)
+
+Tüm hedefleri listelemek, aramak, filtrelemek ve anlık ping/traceroute ölçümleri yapmak için kullanılır.
 
 ```bash
 cd ui
-go mod tidy
 go run .
+# veya derlenmiş ikili dosya ile:
+./pinglab.exe
 ```
 
-Varsayılan API adresi kodda gömülüdür: `https://ping.mehmetemredogan.tr`.
-Config yoksa bu adres kullanılır. Çalışırken TUI’daki API alanından değiştirip
-Enter’a basınca hem anında geçerli olur hem de `config.yaml`’a yazılır.
-Kalıcı düzenleme: `%AppData%/eping/config.yaml` (Windows) /
-`~/.config/eping/config.yaml` (Linux/macOS), veya `EPING_API_URL`.
-
-## Kısayollar
+#### TUI Klavye Kısayolları
 
 | Tuş | İşlem |
-|-----|--------|
-| `/` | Arama |
-| `[` `]` | Kategori |
-| `enter` | Ölç + traceroute |
-| `a` | Filtrelenmiş tümünü ölç |
-| `e` | Grubu aç/kapa |
-| `i` | Detay paneli (p50/p95, DNS/TCP/TLS, hop tablosu, geçmişe göre eğilim) |
-| `l` | Giriş yap |
-| `o` | Çıkış (oturum) |
-| `r` | Yenile |
+|---|---|
+| `/` | Canlı arama ve filtreleme |
+| `[` `]` | Kategori değiştirme (AWS, Azure, CDN, Oyun vb.) |
+| `enter` / `space` | Seçili hedefi test et (HTTP TTFB + Traceroute) |
+| `a` | Filtrelenmiş tüm hedefleri toplu test et (ortak `session_id` ile) |
+| `n` | **Gerçek Web Ağ Kalite Testini başlat (Skor & Derece)** |
+| `e` | Sağlayıcı grubunu aç/kapat (katla/genişlet) |
+| `i` | Detay paneli (p50/p95, DNS/TCP/TLS, hop tablosu, geçmiş eğilim) |
+| `l` | Platforma kullanıcı girişi yap (`username` / `password`) |
+| `o` | Oturumu kapat |
+| `r` | Hedefleri API'den yeniden yükle |
 | `q` | Çıkış |
 
-## Ölçüm detayları
+---
 
-**Ping (HTTP TTFB)** ve **Tracert (traceroute)** sonuçları her zaman ayrı
-etiketli bölümler halinde gösterilir, hiçbir yerde birleştirilip tek satırda
-karıştırılmaz:
+### 2. CLI Ağ Kalite Testi (`eping quality`)
 
-- Hedef listesinde: ping satırının hemen altında `↳ Tracert: ...` şeklinde
-  ayrı, farklı renkte bir satır.
+Arayüze girmeden doğrudan terminal üzerinden 12 bağımsız web servisine (Google, Cloudflare, Microsoft, Apple, GitHub, AWS, Wikipedia, YouTube, Netflix, e-Devlet, Trendyol, Hetzner) eşzamanlı istek atarak kapsamlı bir ağ kalitesi karnesi oluşturur.
+
+```bash
+# Terminal özet kartı ile ölçüm:
+go run . quality
+
+# JSON çıktısı (CI/CD veya otomasyonlar için):
+go run . quality --json
+
+# Sunucuya kaydetmeden yalnızca yerel test:
+go run . quality --no-upload
+
+# Özel zaman aşımı belirterek:
+go run . quality --timeout 8s
+```
+
+#### Ölçülen Metrikler ve Karne:
+- **DNS Çözümleme Süresi (DNS Lookup)**
+- **TCP Bağlantı Süresi (TCP Connect)**
+- **TLS El Sıkışma Süresi (TLS Handshake)**
+- **İlk Bayt Süresi (TTFB - Time To First Byte)**
+- **Toplam İstek Süresi & HTTP Durum Kodu (200, 301...)**
+- **0–100 Kalite Skoru ve Derece (A+, A, B, C, D, F)**
+- **Ağ Durumu (`excellent`, `good`, `fair`, `poor`, `critical`)**
+
+---
+
+### 3. Arka Plan Daemon Modu (`eping daemon`)
+
+Headless sunucularda veya geliştirici bilgisayarlarında arka planda bir servis gibi çalışarak periyodik aralıklarla ağ kalitesini test eder ve platforma raporlar.
+
+```bash
+# Daemon modunu başlat:
+go run . daemon
+# veya derlenmiş binary ile:
+./pinglab.exe daemon
+
+# Tek bir döngü çalıştırıp hemen çıkmak için (cron / container healthcheck):
+go run . daemon --once
+```
+
+> [!IMPORTANT]
+> **Dinamik ve Rastgele Ölçüm Aralığı:** Ağ kalite testlerinde ölçüm periyodu kullanıcı tarafından belirlenemez. Ölçümler **her seferinde 15 dakika ile 60 dakika arasında rastgele** olarak otomatik planlanır. Bu sayede hedef sunucularda yapay trafik yükü oluşmaz ve günün farklı saatlerinde doğal ağ davranışı örneklenir.
+
+#### İşletim Sistemi Başlangıcına Ekleme (Autostart)
+- **Windows (PowerShell Görevi):**
+  `schtasks /create /tn "ePingDaemon" /tr "C:\eping\pinglab.exe daemon" /sc onlogon /rl limited`
+- **Linux (systemd User Service):**
+  `~/.config/systemd/user/eping.service` oluşturup `systemctl --user enable --now eping.service` çalıştırın.
+- **macOS (launchd Agent):**
+  `~/Library/LaunchAgents/tr.mehmetemredogan.eping.plist` oluşturup `launchctl load ...` çalıştırın.
+(Detaylı kılavuz için projenin ana [README.md](../README.md#i̇şletim-sistemi-açılışına-ekleme) dokümanına bakın.)
+
+---
+
+## Yapılandırma
+
+İstemci yapılandırmayı şu sırayla okur:
+1. Ortam Değişkeni: `EPING_API_URL` veya `PINGLAB_API_URL`
+2. Dosya: `%AppData%/eping/config.yaml` (Windows) veya `~/.config/eping/config.yaml` (Linux/macOS)
+3. Kod içi varsayılan adres: `https://ping.mehmetemredogan.tr`
+
+Örnek `config.yaml`:
+```yaml
+api_url: https://ping.mehmetemredogan.tr
+samples: 4
+concurrency: 6
+token: "1|abcdef..."
+username: "med"
+trace_on_measure: true
+trace_on_all: false
+```
+
+TUI içerisindeyken API adresi değiştirildiğinde Enter'a basıldığında `config.yaml` dosyasına otomatik kaydedilir.
+
+---
+
+## Ölçüm Detayları
+
+**Ping (HTTP TTFB)** ve **Tracert (traceroute)** sonuçları her zaman ayrı etiketli bölümler halinde gösterilir:
+- Hedef listesinde: ping satırının hemen altında `↳ Tracert: ...` şeklinde ayrı, renkli bir satır.
 - Alt bilgi panelinde: `Ping: ...` ve `Tracert: ...` iki ayrı satır.
-- `i` (detay) panelinde: `── PING (HTTP TTFB) ──` ve `── TRACEROUTE ──`
-  başlıklı iki ayrı bölüm.
+- `i` (detay) panelinde: `── PING (HTTP TTFB) ──` ve `── TRACEROUTE ──` başlıklı iki ayrı bölüm.
 
-Ping bölümü; ortalama/min/maks/jitter yanında **p50/p95** yüzdelik
-dilimlerini ve her isteğin **DNS / TCP / TLS / TTFB** kırılımını gösterir.
-Tracert bölümü etkinse hop hop IP, gecikme ve sınıflandırma (loopback /
-link-local / private / CGNAT / public) gösterilir.
-
-## Geçmişle karşılaştırma (giriş yapılmış kullanıcılar)
-
-Giriş yapıldığında istemci, sunucudaki `/api/v1/results/trend` uç noktasından
-kullanıcının geçmiş ölçümlerini çeker ve:
-
-- Üst bilgi çubuğunda genel ağ eğilimini (`↑ iyileşiyor` / `↓ kötüleşiyor` /
-  `→ stabil`) gösterir.
-- Her ölçümden sonra o hedefin son sonucunu kendi geçmiş ortalamasıyla
-  karşılaştırıp ("Geçmişe göre: %18 daha hızlı (iyileşiyor, 32 geçmiş ölçüm)")
-  şeklinde bir içgörü ekler.
-
-Karşılaştırma, en son birkaç ölçümün ortalamasını (recent) önceki geçmişin
-ortalamasıyla (baseline) kıyaslar; yeterli geçmiş veri yoksa "yetersiz veri"
-olarak işaretlenir.
+---
 
 ## Derleme
 
-Çoklu platform (Windows/Linux/macOS) derleme seçenekleri ve otomatik release
-süreci için bkz. [`../docs/BUILD.md`](../docs/BUILD.md). Hızlı özet:
+Çoklu platform (Windows/Linux/macOS) derleme seçenekleri için bkz. [`../docs/BUILD.md`](../docs/BUILD.md). Hızlı özet:
 
 ```bash
 # Sadece mevcut platform için

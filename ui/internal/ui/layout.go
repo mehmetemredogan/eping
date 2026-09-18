@@ -58,7 +58,7 @@ func (m Model) termHeight() int {
 func (m Model) renderTop(w int) string {
 	// Brand row
 	left := logoStyle.Render(AppName) + "  " + logoTagStyle.Render(AppTagline)
-	session := mutedStyle.Render("oturum yok")
+	session := mutedStyle.Render("oturum yok [l: giriş]")
 	if m.username != "" {
 		session = okStyle.Render("@" + m.username)
 		if m.trend != nil {
@@ -127,7 +127,7 @@ func (m Model) renderBottom(w int) string {
 	} else {
 		statusLine = statusStyle.Render(padOrTrim(trunc(status, w), w))
 	}
-	help := helpStyle.Render(padOrTrim("/ ara  [ ] kat  enter ölç  a tümü  e grup  i detay  r yenile  q çıkış", w))
+	help := helpStyle.Render(padOrTrim("/ ara  [ ] kat  enter ölç  a tümü  n kalite  e grup  i detay  l giriş  o çıkış  r yenile  q çıkış", w))
 
 	parts := []string{rule}
 	parts = append(parts, analysisLines...)

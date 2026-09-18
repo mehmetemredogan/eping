@@ -84,20 +84,67 @@ return [
             ]) : [],
         ],
 
-        'pgsql' => [
-            'driver' => 'pgsql',
-            'url' => env('DATABASE_URL', env('DB_URL')),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => env('DB_CHARSET', 'utf8'),
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
-        ],
+        'pgsql' => (function () {
+            $url = env('DATABASE_URL', env('DB_URL'));
+            $config = [
+                'driver' => 'pgsql',
+                'host' => env('DB_HOST', '127.0.0.1'),
+                'port' => env('DB_PORT', '5432'),
+                'database' => env('DB_DATABASE', 'laravel'),
+                'username' => env('DB_USERNAME', 'root'),
+                'password' => env('DB_PASSWORD', ''),
+                'charset' => env('DB_CHARSET', 'utf8'),
+                'prefix' => '',
+                'prefix_indexes' => true,
+                'search_path' => 'public',
+                'sslmode' => env('DB_SSLMODE', 'prefer'),
+            ];
+
+            if (! empty($url)) {
+                $parsed = parse_url($url);
+                if (is_array($parsed)) {
+                    if (! empty($parsed['host'])) {
+                        $config['host'] = $parsed['host'];
+                    }
+                    if (! empty($parsed['port'])) {
+                        $config['port'] = (string) $parsed['port'];
+                    }
+                    if (! empty($parsed['path'])) {
+                        $config['database'] = ltrim($parsed['path'], '/');
+                    }
+                    if (isset($parsed['user'])) {
+                        $config['username'] = $parsed['user'];
+                    }
+                    if (isset($parsed['pass'])) {
+                        $config['password'] = $parsed['pass'];
+                    }
+                    if (! empty($parsed['query'])) {
+                        parse_str($parsed['query'], $query);
+                        if (! empty($query['sslmode'])) {
+                            $config['sslmode'] = (string) $query['sslmode'];
+                        }
+                    }
+                }
+            }
+
+            // Dual-stack / Windows IPv6 fallback: libpq on Windows attempts IPv6 before
+            // IPv4 by default and hangs if the local network does not route IPv6.
+            // Appending 'hostaddr=<ipv4>' allows libpq to connect to the IPv4 address directly
+            // while preserving the original host for TLS SNI and certificate validation.
+            $rawHost = $config['host'];
+            $hostaddr = env('DB_HOSTADDR');
+            if (empty($hostaddr) && ! empty($rawHost) && ! in_array($rawHost, ['localhost', '127.0.0.1', '::1'], true) && ! filter_var($rawHost, FILTER_VALIDATE_IP)) {
+                $ipv4 = gethostbyname($rawHost);
+                if ($ipv4 !== $rawHost && filter_var($ipv4, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $hostaddr = $ipv4;
+                }
+            }
+            if (! empty($hostaddr) && ! str_contains($config['host'], 'hostaddr=')) {
+                $config['host'] = $rawHost.' hostaddr='.$hostaddr;
+            }
+
+            return $config;
+        })(),
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',

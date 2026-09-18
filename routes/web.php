@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ProviderController;
 use App\Http\Controllers\CaptchaController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\NetworkQualityController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'ping.home')->name('home');
 
 Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
+Route::get('/quality', [NetworkQualityController::class, 'index'])->name('quality.index');
+Route::get('/quality/{test}', [NetworkQualityController::class, 'show'])->name('quality.show');
 
 Route::view('/legal/terms', 'legal.terms')->name('legal.terms');
 Route::view('/legal/privacy', 'legal.privacy')->name('legal.privacy');

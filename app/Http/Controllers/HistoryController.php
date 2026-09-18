@@ -12,6 +12,7 @@ class HistoryController extends Controller
     public function index(Request $request): View
     {
         $date = $request->string('date')->toString();
+        $sessionId = $request->string('session_id')->toString();
         $userId = $request->user()->id;
 
         $query = PingResult::query()
@@ -21,6 +22,10 @@ class HistoryController extends Controller
 
         if ($date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             $query->whereDate('tested_at', $date);
+        }
+
+        if ($sessionId !== '' && \Illuminate\Support\Str::isUuid($sessionId)) {
+            $query->where('session_id', $sessionId);
         }
 
         $results = $query->limit(500)->get();
@@ -43,6 +48,7 @@ class HistoryController extends Controller
             'groupedByDate' => $groupedByDate,
             'availableDates' => $availableDates,
             'selectedDate' => $date,
+            'selectedSession' => $sessionId,
         ]);
     }
 

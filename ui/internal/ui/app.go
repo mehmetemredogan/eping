@@ -1,9 +1,12 @@
 package ui
 
 import (
+	"context"
+	"crypto/rand"
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -12,6 +15,8 @@ import (
 
 	"pinglab/ui/internal/api"
 	"pinglab/ui/internal/config"
+	"pinglab/ui/internal/linktype"
+	"pinglab/ui/internal/quality"
 	"pinglab/ui/internal/traceroute"
 )
 
@@ -56,9 +61,10 @@ type rowState struct {
 	pathSummary   string
 	traceInsights []string
 
-	hops       []traceroute.Hop
-	trendLabel string
-	uploadErr  string
+	hops            []traceroute.Hop
+	trendLabel      string
+	uploadErr       string
+	unauthenticated bool
 }
 
 type groupState struct {
@@ -102,6 +108,11 @@ type measureMsg struct {
 	row      rowState
 }
 
+type qualityDoneMsg struct {
+	eval quality.Evaluation
+	err  error
+}
+
 type statusMsg string
 
 type Model struct {
@@ -137,6 +148,7 @@ type Model struct {
 	status         string
 	testing        bool
 	singleInFlight bool
+	qualityInFlight bool
 	err            string
 	count          int
 
@@ -146,9 +158,10 @@ type Model struct {
 
 	measureQueue      []api.Target
 	measureWithTrace  bool
-	measureBatchTotal int
-	measureBatchDone  int
+	measureBatchTotal      int
+	measureBatchDone       int
 	measureBatchUploadErrs int
+	measureBatchSessionID  string
 
 	trend      *api.TrendSummary
 	showDetail bool
@@ -286,6 +299,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.measureSelected(true)
 		case "a":
 			return m.measureAllVisible()
+		case "n":
+			return m.startQualityTest()
 		case "i":
 			m.showDetail = !m.showDetail
 			m.ensureVisible()
@@ -367,6 +382,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			uploadNote := ""
 			if msg.row.uploadErr != "" {
 				uploadNote = " (yüklenemedi)"
+			} else if msg.row.unauthenticated {
+				uploadNote = " (oturum yok, kaydedilmedi)"
 			}
 			m.status = fmt.Sprintf("Ölçüldü: %s%s", msg.row.target.Name, uploadNote)
 			if msg.row.pathSummary != "" {
@@ -382,6 +399,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = fmt.Sprintf("Tamamlandı — %d hedef", m.measureBatchDone)
 			if uploadErrs > 0 {
 				m.status += fmt.Sprintf(" (%d sonuç sunucuya yüklenemedi)", uploadErrs)
+			} else if m.cfg.Token == "" {
+				m.status += " (sunucuya kaydedilmedi — 'l' ile giriş yapın)"
 			}
 			if m.cfg.Token != "" {
 				return m, m.cmdFetchTrend()
@@ -399,6 +418,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if msg.row.uploadErr != "" {
 			m.status = "Ölçüm tamam ama sunucuya yüklenemedi: " + msg.row.uploadErr
+		} else if msg.row.unauthenticated {
+			m.status += " (sunucuya kaydedilmedi — 'l' ile giriş yapın)"
 		}
 		if !m.hasMeasuring() {
 			m.spinning = false
@@ -414,6 +435,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spin, cmd = m.spin.Update(msg)
 		return m, cmd
+
+	case qualityDoneMsg:
+		m.qualityInFlight = false
+		m.spinning = false
+		m.measureMsg = ""
+		if msg.err != nil {
+			m.status = "Ağ kalite testi hatası: " + msg.err.Error()
+			return m, nil
+		}
+		savedNote := ""
+		if m.cfg.Token != "" {
+			savedNote = " (sunucuya kaydedildi)"
+		} else {
+			savedNote = " (yerel)"
+		}
+		ttfb := "—"
+		if msg.eval.AvgTTFBMs != nil {
+			ttfb = fmt.Sprintf("%0.1fms", *msg.eval.AvgTTFBMs)
+		}
+		m.status = fmt.Sprintf("Ağ Kalitesi: %d/100 [%s] · TTFB: %s · Başarı: %d/%d%s",
+			msg.eval.Score, msg.eval.Grade, ttfb, msg.eval.TargetsSuccess, msg.eval.TargetsTotal, savedNote)
+		return m, nil
 
 	case statusMsg:
 		m.status = string(msg)
@@ -503,7 +546,7 @@ func (m Model) measureSelected(withTrace bool) (tea.Model, tea.Cmd) {
 	m.status = "Ölçülüyor: " + m.measureMsg
 	m.spinning = true
 	m.singleInFlight = true
-	return m, tea.Batch(m.spin.Tick, m.cmdMeasureOne(row.target, withTrace && m.cfg.TraceOnMeasure))
+	return m, tea.Batch(m.spin.Tick, m.cmdMeasureOne(row.target, withTrace && m.cfg.TraceOnMeasure, newUUID()))
 }
 
 func (m Model) measureAllVisible() (tea.Model, tea.Cmd) {
@@ -522,6 +565,7 @@ func (m Model) measureAllVisible() (tea.Model, tea.Cmd) {
 	m.measureBatchTotal = len(targets)
 	m.measureBatchDone = 0
 	m.measureBatchUploadErrs = 0
+	m.measureBatchSessionID = newUUID()
 	m.measureQueue = append([]api.Target(nil), targets...)
 	m.measureWithTrace = m.cfg.TraceOnAll
 	for i := range m.groups {
@@ -548,7 +592,7 @@ func (m Model) startNextBatchMeasure() (tea.Model, tea.Cmd) {
 		m.measureMsg += " (+ traceroute)"
 	}
 	m.status = "Ölçülüyor: " + m.measureMsg
-	return m, tea.Batch(m.spin.Tick, m.cmdMeasureOne(next, m.measureWithTrace))
+	return m, tea.Batch(m.spin.Tick, m.cmdMeasureOne(next, m.measureWithTrace, m.measureBatchSessionID))
 }
 
 // clearMeasurement resets a row's visible values to the "measuring" state.
@@ -574,6 +618,7 @@ func (m *Model) clearMeasurement(row *rowState) {
 	row.hops = nil
 	row.trendLabel = ""
 	row.uploadErr = ""
+	row.unauthenticated = false
 	m.metrics[row.target.ID] = *row
 }
 
@@ -596,6 +641,7 @@ func (m *Model) resetRowWaiting(row *rowState) {
 	row.hops = nil
 	row.trendLabel = ""
 	row.uploadErr = ""
+	row.unauthenticated = false
 	m.metrics[row.target.ID] = *row
 }
 
@@ -612,7 +658,7 @@ func (m *Model) markRowMeasuring(targetID uint64) {
 }
 
 func (m Model) hasMeasuring() bool {
-	if m.testing || m.singleInFlight {
+	if m.testing || m.singleInFlight || m.qualityInFlight {
 		return true
 	}
 	for _, g := range m.groups {
@@ -973,12 +1019,12 @@ func (m Model) cmdLogout() tea.Cmd {
 	}
 }
 
-func (m Model) cmdMeasureOne(t api.Target, withTrace bool) tea.Cmd {
+func (m Model) cmdMeasureOne(t api.Target, withTrace bool, sessionID string) tea.Cmd {
 	samples := m.cfg.Samples
 	client := api.New(strings.TrimSpace(m.apiInput.Value()), m.cfg.Token)
 	token := m.cfg.Token
 	return func() tea.Msg {
-		row := measureTarget(client, token, t, samples, withTrace)
+		row := measureTarget(client, token, t, samples, withTrace, sessionID)
 		return measureMsg{targetID: t.ID, row: row}
 	}
 }
@@ -1088,3 +1134,61 @@ func deref(s *string) string {
 	}
 	return *s
 }
+
+func newUUID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+func (m *Model) startQualityTest() (tea.Model, tea.Cmd) {
+	if m.hasMeasuring() {
+		return m, nil
+	}
+	m.qualityInFlight = true
+	m.spinning = true
+	m.measureMsg = "Ağ kalitesi test ediliyor (web servisleri taranıyor)..."
+	return m, tea.Batch(m.spin.Tick, m.cmdRunQuality())
+}
+
+func (m Model) cmdRunQuality() tea.Cmd {
+	client := m.client
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+
+		targets := quality.DefaultTargets()
+		results := quality.MeasureAll(ctx, targets, quality.MeasureOptions{
+			Timeout:     6 * time.Second,
+			Concurrency: 4,
+		})
+		eval := quality.Evaluate(results)
+
+		if client.Token != "" {
+			connType := string(linktype.Detect())
+			_ = client.StoreNetworkQuality(api.NetworkQualityPayload{
+				Score:             eval.Score,
+				Grade:             eval.Grade,
+				Status:            eval.Status,
+				Summary:           eval.Summary,
+				AvgLatencyMs:      eval.AvgLatencyMs,
+				AvgDNSMs:          eval.AvgDNSMs,
+				AvgTCPMs:          eval.AvgTCPMs,
+				AvgTLSMs:          eval.AvgTLSMs,
+				AvgTTFBMs:         eval.AvgTTFBMs,
+				PacketLossPercent: eval.PacketLossPercent,
+				ConnectionType:    connType,
+				Results:           results,
+				Insights:          eval.Insights,
+				TestedAt:          time.Now().UTC().Format(time.RFC3339),
+			})
+		}
+
+		return qualityDoneMsg{eval: eval}
+	}
+}
+

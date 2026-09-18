@@ -146,6 +146,7 @@ Query parameters:
 | Param | Type | Description |
 |---|---|---|
 | `target_id` | int | Scope to a single target |
+| `session_id` | string (UUID) | Filter by batch test session ID |
 | `limit` | int | 1–200, default 50 |
 
 ### `GET /api/v1/results/trend`
@@ -163,6 +164,73 @@ Query parameters:
 Without `target_id`, returns an overall summary (`↑ improving` / `↓ degrading` /
 `→ stable`) plus per-target breakdowns.
 
+## Network Quality Tests
+
+Endpoints for real-world web access quality assessments (probes across 12 distinct global and regional services like Google, Cloudflare, Apple, Netflix, e-Devlet, etc.).
+
+### `POST /api/v1/network-quality`
+
+Public or Authenticated (Sanctum bearer token). Rate limit: 60 requests/minute. Submits a completed network quality test.
+
+Request body:
+
+```json
+{
+  "score": 94,
+  "grade": "A+",
+  "status": "excellent",
+  "summary": "Mükemmel web ve servis erişim kalitesi, düşük gecikme.",
+  "avg_latency_ms": 142.5,
+  "avg_dns_ms": 12.3,
+  "avg_tcp_ms": 45.1,
+  "avg_tls_ms": 32.8,
+  "avg_ttfb_ms": 52.3,
+  "packet_loss_percent": 0.0,
+  "connection_type": "ethernet",
+  "results": [
+    {
+      "name": "Cloudflare CDN",
+      "url": "https://cloudflare.com",
+      "category": "cdn",
+      "dns_ms": 0.7,
+      "tcp_ms": 32.1,
+      "tls_ms": 23.5,
+      "ttfb_ms": 38.2,
+      "total_ms": 94.5,
+      "status_code": 200,
+      "ok": true
+    }
+  ],
+  "insights": {
+    "dns": "Ultra Hızlı DNS",
+    "stability": "Kesintisiz %100 Erişim"
+  },
+  "tested_at": "2026-09-18T20:00:00Z"
+}
+```
+
+Response `201`:
+
+```json
+{
+  "id": 1,
+  "score": 94,
+  "grade": "A+",
+  "status": "excellent",
+  "client_ip": "1.2.3.4",
+  "client_isp": "Superonline",
+  "tested_at": "2026-09-18T20:00:00.000000Z"
+}
+```
+
+### `GET /api/v1/network-quality/latest`
+
+Public or Authenticated. Returns the most recent network quality test for the authenticated user (or matching client IP).
+
+### `GET /api/v1/network-quality`
+
+Public or Authenticated. Returns paginated history of network quality tests.
+
 ## Web-only endpoints
 
 These are not part of the versioned API and are only used by the Blade web app
@@ -171,4 +239,7 @@ itself (`routes/web.php`) — auth, the member panel, and the admin panel:
 - `POST /locale` — switches the UI language (`tr`/`en`) for the current session.
 - `GET /captcha` — returns a captcha image (registration flow).
 - `GET /history` — the member panel: lists the authenticated user's ping
-  results (submitted by the terminal client via the API above), grouped by date.
+  results (submitted by the terminal client via the API above), grouped by date and session.
+- `GET /quality` — Network Quality dashboard: shows recent scores, aggregates, and past quality tests.
+- `GET /quality/{test}` — Network Quality detail view: displays all probed web targets and breakdown metrics.
+

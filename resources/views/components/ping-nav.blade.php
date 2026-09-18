@@ -5,6 +5,7 @@
 @php
     $links = [
         ['route' => 'home', 'pattern' => 'home', 'label' => __('ping.nav_home'), 'auth' => false],
+        ['route' => 'quality.index', 'pattern' => 'quality.*', 'label' => __('ping.nav_quality'), 'auth' => false],
         ['route' => 'stats.index', 'pattern' => 'stats.*', 'label' => __('ping.nav_stats'), 'auth' => false],
         ['route' => 'history.index', 'pattern' => 'history.*', 'label' => __('ping.nav_history'), 'auth' => true],
         ['route' => 'settings.edit', 'pattern' => 'settings.*', 'label' => __('ping.nav_settings'), 'auth' => true],

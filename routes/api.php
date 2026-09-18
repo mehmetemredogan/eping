@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\NetworkQualityController;
 use App\Http\Controllers\Api\ResultController;
 use App\Http\Controllers\Api\TargetController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,7 @@ Route::prefix('v1')->group(function () {
 
     // Public read of active targets (desktop can browse before login; report requires auth).
     Route::get('/targets', [TargetController::class, 'index'])->middleware('throttle:60,1');
+    Route::get('/quality/latest', [NetworkQualityController::class, 'latest'])->middleware('throttle:60,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -19,5 +21,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/results/history', [HistoryController::class, 'index'])->middleware('throttle:60,1');
         Route::get('/results/trend', [HistoryController::class, 'trend'])->middleware('throttle:60,1');
+
+        Route::post('/quality', [NetworkQualityController::class, 'store'])->middleware('throttle:60,1');
+        Route::get('/quality/history', [NetworkQualityController::class, 'history'])->middleware('throttle:60,1');
     });
 });

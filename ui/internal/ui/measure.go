@@ -14,7 +14,7 @@ import (
 
 const maxTraceRawBytes = 64 * 1024
 
-func measureTarget(client *api.Client, token string, t api.Target, samples int, withTrace bool) rowState {
+func measureTarget(client *api.Client, token string, t api.Target, samples int, withTrace bool, sessionID string) rowState {
 	st := ping.MeasureHost(context.Background(), t.Host, samples)
 
 	var path *traceroute.Result
@@ -49,6 +49,7 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 	}
 
 	if token == "" {
+		row.unauthenticated = true
 		return row
 	}
 
@@ -64,7 +65,7 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 		}
 	}
 	status := "success"
-	if report.Status == netinfo.StatusUnreachable || received == 0 {
+	if received == 0 {
 		status = "failed"
 	}
 	loss := 0.0
@@ -76,7 +77,13 @@ func measureTarget(client *api.Client, token string, t api.Target, samples int, 
 		metric = ping.MetricHTTPTTFB
 	}
 
+	var sid *string
+	if sessionID != "" {
+		sid = &sessionID
+	}
+
 	if err := client.StoreResult(t.ID, api.ResultPayload{
+		SessionID:         sid,
 		Status:            status,
 		MinLatencyMs:      st.MinMs,
 		MaxLatencyMs:      st.MaxMs,

@@ -38,7 +38,8 @@ Data collected by ePing is anonymized and published in the statistics section.
 - [Installation](#installation)
 - [Development](#development)
 - [Testing](#testing)
-- [Terminal client (ui/)](#terminal-client-ui)
+- [Terminal client configuration (ui/)](#terminal-client-configuration-ui)
+- [OS autostart on boot (boot service)](#os-autostart-on-boot-boot-service)
 - [Language support](#language-support)
 - [CI/CD and builds](#cicd-and-builds)
 - [Project structure](#project-structure)
@@ -49,12 +50,18 @@ Data collected by ePing is anonymized and published in the statistics section.
 ## Features
 
 - **Global target list** — AWS, Azure, GCP, Cloudflare, DigitalOcean, Oracle,
-  Hetzner, Vultr, OVH, game servers and more, grouped by category and provider
-  (tested via the terminal client).
-- **Terminal client** — HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
-  OS `tracert`/`traceroute`-based hop analysis; the sole measurement tool.
-- **Member panel** — Lists the history of tests you ran with the terminal
-  client, grouped by date.
+  Hetzner, Vultr, OVH, game servers and more, grouped by category and provider.
+- **Terminal client (TUI)** — High-precision HTTP TTFB (DNS/TCP/TLS breakdown, p50/p95) plus
+  OS `tracert`/`traceroute`-based hop analysis.
+- **Real-World Network Quality Test** — Concurrently probes 12 major independent global and regional
+  web services (Google, Cloudflare, Microsoft, Apple, GitHub, AWS, Wikipedia, YouTube, Netflix,
+  e-Devlet, Trendyol, Hetzner) measuring DNS, TCP, TLS, TTFB, total duration, packet loss,
+  0–100 quality score, and A+/F grade.
+- **Background Headless Daemon** — Runs silently in the background, periodically evaluates network
+  quality, logs metrics, and reports them to the platform automatically.
+- **Network Quality Web Dashboard** — View test history, score trends, and target-by-target breakdowns
+  at `/quality`.
+- **Member panel** — Lists your terminal test history grouped by date and `session_id`.
 - **Historical comparison** — For logged-in users, shows an improving/degrading
   trend compared to their measurement history (via the API, `/api/v1/results/trend`).
 - **Admin panel** — Manage targets, providers, and test logs; dashboard statistics.
@@ -65,9 +72,9 @@ Data collected by ePing is anonymized and published in the statistics section.
 
 ## Architecture
 
-The backend stores the target list and test results in PostgreSQL (or SQLite for
-tests). Ping measurement is only performed by the Go terminal client and submitted
-via the API; the web app displays those results in the member panel and admin panel.
+The backend stores the target list, ping results, and network quality tests in PostgreSQL (or SQLite for
+tests). Measurements are performed exclusively by the Go terminal client and submitted via the REST API;
+the web application presents these in the member panel, network quality dashboard, and admin panel.
 
 ## Requirements
 
@@ -99,20 +106,193 @@ For a one-command setup (dependencies, .env, migrations, frontend build):
 composer run setup
 ```
 
-Start the local server:
+## Execution Modes
+
+ePing provides multiple execution modes for various workflows:
+
+### 1. Web Application (Laravel)
 
 ```bash
+# Start web server only:
 php artisan serve
+
+# Start server, queue worker, and Vite together:
+composer run dev
 ```
 
-The app runs at `http://localhost:8000` by default.
+The application runs at `http://localhost:8000` by default.
 
-## Development
+### 2. Terminal Client — Interactive TUI Mode
 
-Runs the server, queue listener, log tailer, and Vite together in a single command:
+Browse targets, filter, and run interactive ping and traceroute tests:
 
 ```bash
-composer run dev
+cd ui
+go run .
+# or with compiled binary:
+./pinglab.exe
+```
+
+**TUI Shortcuts:**
+
+| Key | Action |
+|---|---|
+| `/` | Live search and filter |
+| `[` `]` | Cycle categories |
+| `enter` / `space` | Measure selected target (HTTP TTFB + Traceroute) |
+| `a` | Batch measure all filtered targets (shared `session_id`) |
+| `n` | **Launch Real-World Network Quality Test (Score & Grade)** |
+| `e` | Expand/collapse provider group |
+| `i` | Detail panel (p50/p95, DNS/TCP/TLS, hop table, trend vs. history) |
+| `l` | Log in to platform (`username` / `password`) |
+| `o` | Log out |
+| `r` | Refresh targets from API |
+| `q` | Quit |
+
+### 3. Terminal Client — CLI Network Quality Test (One-Shot)
+
+Without entering the TUI, quickly probe 12 real web services and output an ANSI summary card:
+
+```bash
+cd ui
+go run . quality
+# or
+./pinglab.exe quality
+```
+
+**Flags:**
+- `--json` : Output JSON for pipelines and automation (`go run . quality --json`).
+- `--no-upload` : Local evaluation only, does not upload to API server.
+- `--timeout <duration>` : Per-target timeout (default: `6s`).
+
+### 4. Terminal Client — Background Daemon Mode (Headless Monitoring)
+
+For background automated monitoring on servers or personal machines:
+
+```bash
+cd ui
+go run . daemon
+# or with compiled binary:
+./pinglab.exe daemon
+```
+
+> [!IMPORTANT]
+> **Dynamic Measurement Interval:** The test interval cannot be configured by the user. To prevent artificial synchronized traffic spikes and collect realistic network quality samples across various times of day, the interval is **randomly scheduled between a minimum of 15 minutes and a maximum of 60 minutes each cycle** (e.g. 21 min after the first run, 54 min after the next, 17 min afterwards).
+
+**Flags:**
+- `--once` : Run a single measurement cycle and exit immediately (useful for cron jobs or container health checks).
+
+---
+
+## OS Autostart on Boot (Boot Service)
+
+To run `eping daemon` automatically on system boot or user logon:
+
+### 🪟 Windows (Task Scheduler or Startup Folder)
+
+#### Option A: Command Line / PowerShell (Recommended)
+Open an Administrator PowerShell prompt and create a logon task:
+
+```powershell
+# Adjust 'C:\eping\pinglab.exe' to your binary's actual path:
+schtasks /create /tn "ePingDaemon" /tr "C:\eping\pinglab.exe daemon" /sc onlogon /rl limited
+```
+
+To stop or delete the task:
+```powershell
+schtasks /delete /tn "ePingDaemon" /f
+```
+
+#### Option B: Startup Folder
+1. Press `Win + R`, type `shell:startup` and hit Enter.
+2. Create a shortcut to `pinglab.exe` inside the opened directory.
+3. Right-click the shortcut, select **Properties**.
+4. Append ` daemon` to the **Target** field (e.g., `C:\eping\pinglab.exe daemon`).
+5. Set **Run** to "Minimized".
+
+---
+
+### 🐧 Linux (systemd User Service)
+
+To run on user logon or system startup:
+
+1. Create user service directory:
+   ```bash
+   mkdir -p ~/.config/systemd/user
+   ```
+
+2. Create `~/.config/systemd/user/eping.service`:
+   ```ini
+   [Unit]
+   Description=ePing Network Quality Daemon
+   After=network-online.target
+   Wants=network-online.target
+
+   [Service]
+   Type=simple
+   ExecStart=/usr/local/bin/eping daemon
+   Restart=always
+   RestartSec=15
+
+   [Install]
+   WantedBy=default.target
+   ```
+
+3. Enable and start the service:
+   ```bash
+   systemctl --user daemon-reload
+   systemctl --user enable --now eping.service
+   ```
+
+4. *(Optional - Servers)* Enable lingering so the service runs even when not logged in:
+   ```bash
+   loginctl enable-linger $USER
+   ```
+
+Check live service logs:
+```bash
+journalctl --user -u eping.service -f
+```
+
+---
+
+### 🍏 macOS (launchd Agent)
+
+To run automatically upon logging into macOS:
+
+1. Create `~/Library/LaunchAgents/tr.mehmetemredogan.eping.plist`:
+   ```xml
+   <?xml version="1.0" encoding="UTF-8"?>
+   <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+   <plist version="1.0">
+   <dict>
+       <key>Label</key>
+       <string>tr.mehmetemredogan.eping</string>
+       <key>ProgramArguments</key>
+       <array>
+           <string>/usr/local/bin/eping</string>
+           <string>daemon</string>
+       </array>
+       <key>RunAtLoad</key>
+       <true/>
+       <key>KeepAlive</key>
+       <true/>
+       <key>StandardOutPath</key>
+       <string>/tmp/eping-daemon.log</string>
+       <key>StandardErrorPath</key>
+       <string>/tmp/eping-daemon.err</string>
+   </dict>
+   </plist>
+   ```
+
+2. Load and start the agent:
+   ```bash
+   launchctl load ~/Library/LaunchAgents/tr.mehmetemredogan.eping.plist
+   ```
+
+To unload:
+```bash
+launchctl unload ~/Library/LaunchAgents/tr.mehmetemredogan.eping.plist
 ```
 
 ## Testing
@@ -121,27 +301,20 @@ composer run dev
 composer run test
 # or
 php artisan test
+
+# For Go unit tests:
+cd ui && go test -v ./...
 ```
 
 Tests use SQLite (`:memory:`) via `phpunit.xml`, so your real database is never touched.
 
-## Terminal client (ui/)
+## Terminal Client Configuration (ui/)
 
-The Go application in `ui/` fetches the target list from the API and displays
-ping/traceroute measurements in a terminal UI.
+Configuration path: `%AppData%/eping/config.yaml` (Windows) or `~/.config/eping/config.yaml`
+(Linux/macOS), or `EPING_API_URL` environment variable.
 
-```bash
-cd ui
-go mod tidy
-go run .
-```
-
-Configuration: `%AppData%/eping/config.yaml` (Windows) or
-`~/.config/eping/config.yaml` (Linux/macOS), or the `EPING_API_URL` environment
-variable.
-
-For details, keyboard shortcuts, and measurement logic, see
-[`ui/README.en.md`](ui/README.en.md) ([Türkçe](ui/README.md)).
+For details, keyboard shortcuts, and measurement mechanics: [`ui/README.md`](ui/README.md)
+([English](ui/README.en.md)).
 
 ## Language support
 

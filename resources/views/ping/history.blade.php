@@ -18,6 +18,11 @@
             </div>
             <div class="flex flex-wrap gap-3">
                 <x-ui-button type="submit" variant="secondary">{{ __('ping.filter') }}</x-ui-button>
+                @if(!empty($selectedSession))
+                    <a href="{{ route('history.index', array_filter(['date' => $selectedDate])) }}" class="inline-flex items-center text-xs text-neutral-500 hover:text-neutral-900 self-center">
+                        <span class="mono mr-1">Oturum: {{ Str::limit($selectedSession, 8) }}</span> &times; {{ __('ping.clear') ?? 'Temizle' }}
+                    </a>
+                @endif
             </div>
         </form>
 
