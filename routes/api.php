@@ -15,6 +15,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/quality/targets', [NetworkQualityController::class, 'targets'])->middleware('throttle:60,1');
     Route::get('/network-quality/targets', [NetworkQualityController::class, 'targets'])->middleware('throttle:60,1');
     Route::get('/quality/latest', [NetworkQualityController::class, 'latest'])->middleware('throttle:60,1');
+    Route::get('/network-quality/latest', [NetworkQualityController::class, 'latest'])->middleware('throttle:60,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -25,6 +26,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/results/trend', [HistoryController::class, 'trend'])->middleware('throttle:60,1');
 
         Route::post('/quality', [NetworkQualityController::class, 'store'])->middleware('throttle:60,1');
+        Route::post('/network-quality', [NetworkQualityController::class, 'store'])->middleware('throttle:60,1');
         Route::get('/quality/history', [NetworkQualityController::class, 'history'])->middleware('throttle:60,1');
+        Route::get('/network-quality/history', [NetworkQualityController::class, 'history'])->middleware('throttle:60,1');
+        Route::get('/network-quality', [NetworkQualityController::class, 'history'])->middleware('throttle:60,1');
     });
 });

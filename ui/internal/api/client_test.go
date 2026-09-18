@@ -90,3 +90,39 @@ func TestDetailedValidationErrorsFormatted(t *testing.T) {
 		t.Errorf("expected status error in message, got: %s", errMsg)
 	}
 }
+
+func TestStoreNetworkQuality_Fallback(t *testing.T) {
+	pathsCalled := make([]string, 0)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pathsCalled = append(pathsCalled, r.URL.Path)
+		if r.URL.Path == "/api/v1/network-quality" {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message": "The route api/v1/network-quality could not be found."}`))
+			return
+		}
+		if r.URL.Path == "/api/v1/quality" {
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": 1, "score": 90}`))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	client := api.New(server.URL, "token")
+	err := client.StoreNetworkQuality(api.NetworkQualityPayload{
+		Score:  90,
+		Grade:  "A+",
+		Status: "excellent",
+	})
+	if err != nil {
+		t.Fatalf("expected nil error after fallback, got: %v", err)
+	}
+
+	if len(pathsCalled) != 2 {
+		t.Fatalf("expected 2 calls, got %d: %v", len(pathsCalled), pathsCalled)
+	}
+	if pathsCalled[0] != "/api/v1/network-quality" || pathsCalled[1] != "/api/v1/quality" {
+		t.Errorf("unexpected path sequence: %v", pathsCalled)
+	}
+}

@@ -131,4 +131,42 @@ class NetworkQualityApiTest extends TestCase
         $response->assertJsonFragment(['name' => 'GitHub', 'domain' => 'github.com']);
         $response->assertJsonMissing(['name' => 'Inactive Target']);
     }
+
+    public function test_network_quality_alias_and_critical_status(): void
+    {
+        $user = User::factory()->create();
+
+        $payload = [
+            'score' => 20,
+            'grade' => 'F',
+            'status' => 'critical',
+            'summary' => 'Kritik ağ sorunu',
+            'results' => [
+                [
+                    'name' => 'Target',
+                    'domain' => 'fail.test',
+                    'ok' => false,
+                    'status_code' => 500,
+                    'error' => 'HTTP 500',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/network-quality', $payload);
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('network_quality_tests', [
+            'user_id' => $user->id,
+            'score' => 20,
+            'grade' => 'F',
+            'status' => 'critical',
+        ]);
+
+        $latestResp = $this->getJson('/api/v1/network-quality/latest');
+        $latestResp->assertStatus(200);
+        $latestResp->assertJsonPath('test.score', 20);
+
+        $historyResp = $this->actingAs($user, 'sanctum')->getJson('/api/v1/network-quality/history');
+        $historyResp->assertStatus(200);
+        $historyResp->assertJsonPath('count', 1);
+    }
 }

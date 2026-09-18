@@ -18,7 +18,7 @@ class NetworkQualityController extends Controller
         $validated = $request->validate([
             'score' => ['required', 'integer', 'min:0', 'max:100'],
             'grade' => ['required', 'string', 'max:8'],
-            'status' => ['required', 'string', 'in:excellent,good,fair,poor,degraded,unreachable,unknown'],
+            'status' => ['required', 'string', 'in:excellent,good,fair,poor,degraded,unreachable,unknown,critical'],
             'summary' => ['nullable', 'string', 'max:255'],
             'avg_latency_ms' => ['nullable', 'numeric', 'min:0'],
             'avg_dns_ms' => ['nullable', 'numeric', 'min:0'],
@@ -29,7 +29,7 @@ class NetworkQualityController extends Controller
             'connection_type' => ['nullable', 'string', 'in:wifi,ethernet,unknown'],
             'results' => ['required', 'array', 'min:1'],
             'results.*.name' => ['nullable', 'string'],
-            'results.*.domain' => ['required', 'string'],
+            'results.*.domain' => ['nullable', 'string'],
             'results.*.category' => ['nullable', 'string'],
             'results.*.ok' => ['required', 'boolean'],
             'results.*.status_code' => ['nullable', 'integer'],

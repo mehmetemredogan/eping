@@ -164,7 +164,11 @@ func (c *Client) StoreNetworkQuality(payload NetworkQualityPayload) error {
 	if err != nil {
 		return err
 	}
-	return c.do("POST", "/api/v1/network-quality", body, true, nil)
+	err = c.do("POST", "/api/v1/network-quality", body, true, nil)
+	if err != nil && (strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "could not be found") || strings.Contains(err.Error(), "Not Found")) {
+		return c.do("POST", "/api/v1/quality", body, true, nil)
+	}
+	return err
 }
 
 type QualityTarget struct {

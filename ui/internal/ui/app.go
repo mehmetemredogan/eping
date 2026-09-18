@@ -109,8 +109,9 @@ type measureMsg struct {
 }
 
 type qualityDoneMsg struct {
-	eval quality.Evaluation
-	err  error
+	eval    quality.Evaluation
+	saveErr error
+	err     error
 }
 
 type statusMsg string
@@ -450,7 +451,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		savedNote := ""
 		if m.cfg.Token != "" {
-			savedNote = " (sunucuya kaydedildi)"
+			if msg.saveErr != nil {
+				savedNote = fmt.Sprintf(" (kayıt hatası: %v)", msg.saveErr)
+			} else {
+				savedNote = " (sunucuya kaydedildi)"
+			}
 		} else {
 			savedNote = " (yerel)"
 		}
@@ -1179,9 +1184,10 @@ func (m Model) cmdRunQuality() tea.Cmd {
 		})
 		eval := quality.Evaluate(results)
 
+		var saveErr error
 		if client.Token != "" {
 			connType := string(linktype.Detect())
-			_ = client.StoreNetworkQuality(api.NetworkQualityPayload{
+			saveErr = client.StoreNetworkQuality(api.NetworkQualityPayload{
 				Score:             eval.Score,
 				Grade:             eval.Grade,
 				Status:            eval.Status,
@@ -1199,7 +1205,7 @@ func (m Model) cmdRunQuality() tea.Cmd {
 			})
 		}
 
-		return qualityDoneMsg{eval: eval}
+		return qualityDoneMsg{eval: eval, saveErr: saveErr}
 	}
 }
 
